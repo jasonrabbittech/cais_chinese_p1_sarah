@@ -61,30 +61,30 @@
     /* 作者信息疊加層（圖片右下角） */
     .post-author-overlay {
       position: absolute;
-      bottom: 14px;
-      right: 14px;
+      bottom: 12px;
+      right: 12px;
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 8px;
       z-index: 10;
     }
 
     .post-author-name-overlay {
       color: white;
-      font-size: 17px;
+      font-size: 16px;
       font-weight: 600;
-      text-shadow: 0 1px 5px rgba(0,0,0,0.75);
+      text-shadow: 0 1px 5px rgba(0,0,0,0.8);
       letter-spacing: 1px;
     }
 
-    /* 頭像放大 1.5 倍面積 ≈ 1.22 倍邊長，原 44px → ~54px */
+    /* 頭像放大 — 面積 ×1.5，邊長 ~66px */
     .post-avatar-overlay {
-      width: 54px;
-      height: 54px;
-      border-radius: 8px;
+      width: 66px;
+      height: 66px;
+      border-radius: 10px;
       background: url('sushi-avatar.jpg') center/cover no-repeat;
-      border: 2.5px solid rgba(255,255,255,0.92);
-      box-shadow: 0 2px 10px rgba(0,0,0,0.45);
+      border: 3px solid rgba(255,255,255,0.92);
+      box-shadow: 0 2px 12px rgba(0,0,0,0.5);
       overflow: hidden;
     }
 
@@ -154,16 +154,26 @@
       padding-left: 4px;
     }
 
-    /* 橫向兩個點 */
+    /* 橫向兩個點（真正的兩點，不是兩組三點） */
     .more-dots-h {
       background: none;
       border: none;
-      font-size: 20px;
       color: #b2b2b2;
       cursor: pointer;
       padding: 4px 10px;
-      letter-spacing: 4px;
       line-height: 1;
+      font-size: 0;
+    }
+    .more-dots-h::before {
+      content: '';
+      display: inline-flex;
+      gap: 5px;
+      align-items: center;
+    }
+    .more-dots-h::after {
+      content: '• •';
+      font-size: 22px;
+      letter-spacing: 3px;
     }
 
     /* 深灰色彈出菜單 — 從右向左展開 */
@@ -244,16 +254,17 @@
 
     /* ===== 留言區 ===== */
     .comments-section {
-      padding: 6px 16px 100px;
+      padding: 6px 12px 100px 24px;
       background: #fff;
     }
 
     .comment-card {
       background: #f7f7f7;
-      border-radius: 4px;
-      padding: 10px 12px;
-      margin-bottom: 5px;
+      border-radius: 6px;
+      padding: 10px 12px 10px 44px;
+      margin-bottom: 6px;
       animation: fadeUp 0.25s ease;
+      position: relative;
     }
 
     @keyframes fadeUp {
@@ -270,10 +281,27 @@
     /* 左上角 voice bubble 圖示 */
     .comment-bubble-icon {
       position: absolute;
-      top: 0;
-      left: -18px;
+      top: 4px;
+      left: -30px;
       color: #8e8e93;
+      font-size: 13px;
+    }
+
+    .c-avatar.student {
+      position: absolute;
+      left: -34px;
+      top: 22px;
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      background: #a8d8ea;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       font-size: 14px;
+      font-weight: 600;
+      flex-shrink: 0;
     }
 
     .c-avatar {
@@ -547,8 +575,8 @@
       
       <!-- 操作欄：時間 + 橫向兩點 -->
       <div class="post-actions-row">
-        <span class="post-time" id="postTime">23 May 2026 11:32 PM</span>
-        <button class="more-dots-h" onclick="togglePopup()">⋮⋮</button>
+        <span class="post-time" id="postTime"></span>
+        <button class="more-dots-h" onclick="togglePopup()"></button>
         
         <!-- 深灰色彈出菜單（向左展開） -->
         <div class="more-popup" id="morePopup">
@@ -607,6 +635,10 @@ const TEACHER_PASSWORD = 'cais2024';
 
 // ========== 初始化 ==========
 window.addEventListener('DOMContentLoaded', async () => {
+  // 設定帖子時間為當前時間
+  const now = new Date();
+  document.getElementById('postTime').textContent = now.toLocaleDateString('en-US',{day:'numeric',month:'short',year:'numeric'})+' '+now.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+
   const savedName = localStorage.getItem('su_shi_name');
   if (savedName) {
     currentUserName = savedName;
