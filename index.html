@@ -894,12 +894,14 @@ function exportCSV() {
 // ========== 工具函數 ==========
 function esc(t){const d=document.createElement('div'); d.textContent=t; return d.innerHTML;}
 function fmtT(iso){
-  if(!iso)return'';
-  const d=new Date(iso), now=new Date(), diff=(now-d)/1000;
-  if(diff<60)return'剛剛';
-  if(diff<3600)return Math.floor(diff/60)+'分鐘前';
-  if(diff<86400)return Math.floor(diff/3600)+'小時前';
-  return d.toLocaleDateString('en-US',{day:'numeric',month:'short',year:'numeric'})+' '+d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+  if(!iso)return '';
+  const d=new Date(iso);
+  const y=d.getFullYear();
+  const M=String(d.getMonth()+1).padStart(2,'0');
+  const D=String(d.getDate()).padStart(2,'0');
+  const h=String(d.getHours()).padStart(2,'0');
+  const m=String(d.getMinutes()).padStart(2,'0');
+  return y+'-'+M+'-'+D+' '+h+':'+m;
 }
 function focusInput(){document.getElementById('commentInput').focus(); closePopup();}
 </script>
