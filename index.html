@@ -1,0 +1,1058 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>蘇軾的朋友圈 — 互動教學</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang TC", "Microsoft JhengHei", sans-serif;
+      background: #f5f5f5;
+      color: #333;
+      line-height: 1.6;
+    }
+    
+    /* 手機容器 */
+    .container {
+      max-width: 500px;
+      margin: 0 auto;
+      background: #fff;
+      min-height: 100vh;
+      box-shadow: 0 0 20px rgba(0,0,0,0.1);
+    }
+    
+    /* 頂部標題列 */
+    .header {
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      color: white;
+      padding: 15px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    
+    .header h1 {
+      font-size: 18px;
+      font-weight: 600;
+    }
+    
+    .header-btn {
+      background: rgba(255,255,255,0.2);
+      border: none;
+      color: white;
+      padding: 6px 12px;
+      border-radius: 15px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+    
+    .header-btn:hover {
+      background: rgba(255,255,255,0.3);
+    }
+    
+    /* 蘇軾帖子 */
+    .post {
+      padding: 20px;
+      border-bottom: 8px solid #f5f5f5;
+    }
+    
+    .post-header {
+      display: flex;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+    
+    .post-avatar {
+      width: 48px;
+      height: 48px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      margin-right: 12px;
+      flex-shrink: 0;
+    }
+    
+    .post-author {
+      flex: 1;
+    }
+    
+    .post-author-name {
+      font-size: 16px;
+      font-weight: 600;
+      color: #333;
+    }
+    
+    .post-meta {
+      font-size: 12px;
+      color: #999;
+      margin-top: 2px;
+    }
+    
+    .post-content {
+      font-size: 15px;
+      line-height: 1.8;
+      color: #333;
+      margin-bottom: 15px;
+    }
+    
+    .post-content p {
+      margin-bottom: 10px;
+    }
+    
+    .post-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 15px;
+    }
+    
+    .post-tag {
+      background: #f0f0f0;
+      color: #576b95;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 13px;
+    }
+    
+    .post-actions {
+      display: flex;
+      gap: 30px;
+      padding-top: 15px;
+      border-top: 1px solid #f0f0f0;
+      margin-top: 15px;
+    }
+    
+    .post-action {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: #999;
+      font-size: 14px;
+      cursor: pointer;
+      background: none;
+      border: none;
+      padding: 5px 0;
+    }
+    
+    .post-action:hover {
+      color: #576b95;
+    }
+    
+    /* 留言區 */
+    .comments-section {
+      padding: 0 20px 100px 20px;
+    }
+    
+    .comments-header {
+      padding: 15px 0;
+      font-size: 15px;
+      font-weight: 600;
+      color: #333;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    
+    .comment-item {
+      padding: 15px 0;
+      border-bottom: 1px solid #f0f0f0;
+      animation: fadeIn 0.3s ease;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .comment-header {
+      display: flex;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    
+    .comment-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      margin-right: 10px;
+      flex-shrink: 0;
+    }
+    
+    .comment-avatar.student {
+      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      color: white;
+    }
+    
+    .comment-avatar.sushi {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+    
+    .comment-meta {
+      flex: 1;
+    }
+    
+    .comment-name {
+      font-size: 14px;
+      font-weight: 500;
+      color: #576b95;
+    }
+    
+    .comment-time {
+      font-size: 11px;
+      color: #999;
+    }
+    
+    .comment-badge {
+      background: #667eea;
+      color: white;
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 8px;
+      margin-left: 6px;
+    }
+    
+    .comment-content {
+      font-size: 14px;
+      line-height: 1.6;
+      color: #333;
+      margin-left: 46px;
+    }
+    
+    .comment-ai-reply {
+      margin-top: 10px;
+      margin-left: 46px;
+      padding: 10px;
+      background: #f8f9ff;
+      border-radius: 8px;
+      border-left: 3px solid #667eea;
+    }
+    
+    .comment-ai-reply .comment-content {
+      margin-left: 0;
+    }
+    
+    .replying-indicator {
+      margin-top: 10px;
+      margin-left: 46px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #999;
+      font-size: 13px;
+    }
+    
+    .typing-dot {
+      width: 6px;
+      height: 6px;
+      background: #667eea;
+      border-radius: 50%;
+      animation: typing 1.4s infinite;
+    }
+    
+    .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+    
+    @keyframes typing {
+      0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+      30% { transform: translateY(-8px); opacity: 1; }
+    }
+    
+    /* 留言輸入區 */
+    .comment-input-area {
+      position: fixed;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 100%;
+      max-width: 500px;
+      background: white;
+      border-top: 1px solid #e0e0e0;
+      padding: 12px 20px;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      z-index: 100;
+    }
+    
+    .comment-input {
+      flex: 1;
+      border: 1px solid #e0e0e0;
+      border-radius: 20px;
+      padding: 10px 15px;
+      font-size: 14px;
+      outline: none;
+      font-family: inherit;
+    }
+    
+    .comment-input:focus {
+      border-color: #667eea;
+    }
+    
+    .comment-submit {
+      background: #667eea;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 20px;
+      font-size: 14px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    
+    .comment-submit:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+    
+    /* 姓名輸入 Modal */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+    
+    .modal {
+      background: white;
+      border-radius: 16px;
+      padding: 30px;
+      width: 90%;
+      max-width: 350px;
+      text-align: center;
+    }
+    
+    .modal h2 {
+      font-size: 20px;
+      margin-bottom: 10px;
+      color: #333;
+    }
+    
+    .modal p {
+      font-size: 14px;
+      color: #666;
+      margin-bottom: 20px;
+    }
+    
+    .modal input {
+      width: 100%;
+      padding: 12px 15px;
+      border: 1px solid #e0e0e0;
+      border-radius: 10px;
+      font-size: 15px;
+      outline: none;
+      font-family: inherit;
+      margin-bottom: 15px;
+    }
+    
+    .modal input:focus {
+      border-color: #667eea;
+    }
+    
+    .modal-btn {
+      width: 100%;
+      padding: 12px;
+      background: #667eea;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 15px;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    
+    .modal-btn:hover {
+      background: #5568d3;
+    }
+    
+    /* 教師後台 Modal */
+    .teacher-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.6);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+    
+    .teacher-modal.show {
+      display: flex;
+    }
+    
+    .teacher-panel {
+      background: white;
+      border-radius: 16px;
+      padding: 30px;
+      width: 95%;
+      max-width: 500px;
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+    
+    .teacher-panel h2 {
+      font-size: 20px;
+      margin-bottom: 20px;
+      color: #333;
+    }
+    
+    .teacher-tabs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      border-bottom: 2px solid #f0f0f0;
+    }
+    
+    .teacher-tab {
+      padding: 10px 15px;
+      background: none;
+      border: none;
+      font-size: 14px;
+      cursor: pointer;
+      color: #999;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -2px;
+    }
+    
+    .teacher-tab.active {
+      color: #667eea;
+      border-bottom-color: #667eea;
+    }
+    
+    .teacher-content {
+      font-size: 14px;
+    }
+    
+    .teacher-btn {
+      padding: 8px 15px;
+      background: #667eea;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 13px;
+      cursor: pointer;
+      margin: 5px;
+      font-family: inherit;
+    }
+    
+    .teacher-btn.danger {
+      background: #f5576c;
+    }
+    
+    .teacher-btn:hover {
+      opacity: 0.9;
+    }
+    
+    .close-btn {
+      float: right;
+      background: none;
+      border: none;
+      font-size: 24px;
+      cursor: pointer;
+      color: #999;
+    }
+    
+    /* 空白狀態 */
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: #999;
+    }
+    
+    .empty-state-icon {
+      font-size: 48px;
+      margin-bottom: 15px;
+    }
+    
+    /* 響應式 */
+    @media (max-width: 500px) {
+      .container {
+        box-shadow: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- 姓名輸入 Modal -->
+  <div class="modal-overlay" id="nameModal">
+    <div class="modal">
+      <h2>👋 歡迎來到蘇軾的朋友圈</h2>
+      <p>請輸入你的姓名，讓蘇軾知道你是誰</p>
+      <input type="text" id="nameInput" placeholder="例如：張小明" maxlength="20">
+      <button class="modal-btn" onclick="submitName()">進入朋友圈</button>
+    </div>
+  </div>
+  
+  <!-- 教師後台 Modal -->
+  <div class="teacher-modal" id="teacherModal">
+    <div class="teacher-panel">
+      <button class="close-btn" onclick="closeTeacherPanel()">×</button>
+      <h2>🔐 教師後台</h2>
+      
+      <div class="teacher-tabs">
+        <button class="teacher-tab active" onclick="switchTab('comments', this)">所有留言</button>
+        <button class="teacher-tab" onclick="switchTab('stats', this)">留言統計</button>
+      </div>
+      
+      <div class="teacher-content" id="teacherContent">
+        <!-- 動態內容 -->
+      </div>
+    </div>
+  </div>
+  
+  <!-- 主容器 -->
+  <div class="container">
+    <!-- 頂部 -->
+    <div class="header">
+      <h1>📱 朋友圈</h1>
+      <button class="header-btn" onclick="openTeacherPanel()">教師後台</button>
+    </div>
+    
+    <!-- 蘇軾帖子 -->
+    <div class="post">
+      <div class="post-header">
+        <div class="post-avatar">🎭</div>
+        <div class="post-author">
+          <div class="post-author-name">蘇軾</div>
+          <div class="post-meta">密州·超然台 · 3分鐘前</div>
+        </div>
+      </div>
+      
+      <div class="post-content">
+        <p>丙辰中秋，歡飲達旦，大醉...</p>
+        <p>月亮真圓啊🌕 想起在齊州的子由（蘇轍），七年未見，甚是想念。</p>
+        <p>人生就是這樣吧，「人有悲歡離合，月有陰晴圓缺」，此事古難全。唯願天下人都能平安健康，即便相隔千里，也能共賞這一輪明月。🌙</p>
+        <p>對了，今晚的月光配密州的美酒，絕了！🍶</p>
+      </div>
+      
+      <div class="post-tags">
+        <span class="post-tag">#中秋</span>
+        <span class="post-tag">#思念</span>
+        <span class="post-tag">#水調歌頭</span>
+        <span class="post-tag">#密州出獵</span>
+      </div>
+      
+      <div class="post-actions">
+        <button class="post-action" onclick="scrollToInput()">💬 歡迎留言...</button>
+        <button class="post-action">👍 128</button>
+      </div>
+    </div>
+    
+    <!-- 留言區 -->
+    <div class="comments-section">
+      <div class="comments-header">
+        💬 留言（<span id="commentCount">0</span>）
+      </div>
+      
+      <div id="commentsList">
+        <div class="empty-state">
+          <div class="empty-state-icon">💬</div>
+          <p>還沒有留言，來搶沙發吧！</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- 留言輸入區 -->
+  <div class="comment-input-area">
+    <input 
+      type="text" 
+      class="comment-input" 
+      id="commentInput" 
+      placeholder="說點什麼..."
+      maxlength="200"
+      onkeypress="if(event.key==='Enter') submitComment()"
+    >
+    <button class="comment-submit" id="submitBtn" onclick="submitComment()">發送</button>
+  </div>
+  
+  <script>
+    // ============================================================
+    // Supabase 設定（請替換為你的專案資訊）
+    // ============================================================
+    const SUPABASE_URL = 'https://pzatgmavjvrastnumxty.supabase.co';
+    const SUPABASE_ANON_KEY = 'sb_publishable_j4SGtTlrZz1_B163jw-a7A_IRNSUo7s';
+    
+    // 初始化 Supabase 客戶端
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    
+    // 教師後台密碼（請修改為你自己的密碼）
+    const TEACHER_PASSWORD = 'cais2024';
+    
+    // 當前使用者姓名
+    let currentUserName = '';
+    
+    // ============================================================
+    // 初始化
+    // ============================================================
+    window.addEventListener('DOMContentLoaded', async () => {
+      // 檢查是否已輸入姓名
+      const savedName = localStorage.getItem('su_shi_name');
+      if (savedName) {
+        currentUserName = savedName;
+        document.getElementById('nameModal').style.display = 'none';
+        await loadComments();
+        subscribeToChanges();
+      }
+    });
+    
+    // ============================================================
+    // 姓名輸入
+    // ============================================================
+    function submitName() {
+      const name = document.getElementById('nameInput').value.trim();
+      if (!name) {
+        alert('請輸入你的姓名');
+        return;
+      }
+      
+      currentUserName = name;
+      localStorage.setItem('su_shi_name', name);
+      document.getElementById('nameModal').style.display = 'none';
+      
+      loadComments();
+      subscribeToChanges();
+    }
+    
+    // 切換身份
+    function switchIdentity() {
+      localStorage.removeItem('su_shi_name');
+      document.getElementById('nameInput').value = '';
+      document.getElementById('nameModal').style.display = 'flex';
+    }
+    
+    // ============================================================
+    // 載入留言
+    // ============================================================
+    async function loadComments() {
+      const { data, error } = await supabase
+        .from('comments')
+        .select('*')
+        .order('created_at', { ascending: true });
+      
+      if (error) {
+        console.error('載入留言失敗：', error);
+        return;
+      }
+      
+      renderComments(data);
+    }
+    
+    // ============================================================
+    // 渲染留言
+    // ============================================================
+    function renderComments(comments) {
+      const container = document.getElementById('commentsList');
+      const countEl = document.getElementById('commentCount');
+      
+      if (comments.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-icon">💬</div>
+            <p>還沒有留言，來搶沙發吧！</p>
+          </div>
+        `;
+        countEl.textContent = '0';
+        return;
+      }
+      
+      countEl.textContent = comments.length;
+      
+      container.innerHTML = comments.map(comment => {
+        const timeStr = formatTime(comment.created_at);
+        const isAIReply = comment.ai_reply !== null && comment.ai_reply !== undefined;
+        const isReplying = comment.is_replying;
+        
+        return `
+          <div class="comment-item" id="comment-${comment.id}">
+            <div class="comment-header">
+              <div class="comment-avatar student">${comment.student_name[0]}</div>
+              <div class="comment-meta">
+                <div class="comment-name">${escapeHtml(comment.student_name)}</div>
+                <div class="comment-time">${timeStr}</div>
+              </div>
+            </div>
+            <div class="comment-content">${escapeHtml(comment.content)}</div>
+            
+            ${isReplying && !isAIReply ? `
+              <div class="replying-indicator" id="replying-${comment.id}">
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+                <span>蘇軾正在回覆...</span>
+              </div>
+            ` : ''}
+            
+            ${isAIReply ? `
+              <div class="comment-ai-reply">
+                <div class="comment-header">
+                  <div class="comment-avatar sushi">軾</div>
+                  <div class="comment-meta">
+                    <div class="comment-name">蘇軾 <span class="comment-badge">🤖 AI</span></div>
+                    <div class="comment-time">${formatTime(comment.replied_at)}</div>
+                  </div>
+                </div>
+                <div class="comment-content">${formatAIReply(comment.ai_reply)}</div>
+              </div>
+            ` : ''}
+          </div>
+        `;
+      }).join('');
+      
+      // 捲動到最底部
+      setTimeout(() => {
+        window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+      }, 100);
+    }
+    
+    // ============================================================
+    // Realtime 訂閱
+    // ============================================================
+    function subscribeToChanges() {
+      supabase
+        .channel('comments-channel')
+        .on(
+          'postgres_changes',
+          { event: 'INSERT', schema: 'public', table: 'comments' },
+          (payload) => {
+            console.log('新留言：', payload.new);
+            loadComments();
+          }
+        )
+        .on(
+          'postgres_changes',
+          { event: 'UPDATE', schema: 'public', table: 'comments' },
+          (payload) => {
+            console.log('留言更新：', payload.new);
+            loadComments();
+          }
+        )
+        .subscribe((status) => {
+          console.log('Realtime 狀態：', status);
+        });
+    }
+    
+    // ============================================================
+    // 提交留言
+    // ============================================================
+    async function submitComment() {
+      const input = document.getElementById('commentInput');
+      const content = input.value.trim();
+      
+      if (!content) {
+        alert('請輸入留言內容');
+        return;
+      }
+      
+      if (!currentUserName) {
+        alert('請先輸入姓名');
+        return;
+      }
+      
+      const submitBtn = document.getElementById('submitBtn');
+      submitBtn.disabled = true;
+      submitBtn.textContent = '發送中...';
+      
+      const { data, error } = await supabase
+        .from('comments')
+        .insert([
+          {
+            student_name: currentUserName,
+            content: content,
+            is_replying: true
+          }
+        ])
+        .select();
+      
+      if (error) {
+        console.error('發送失敗：', error);
+        alert('發送失敗，請重試');
+        submitBtn.disabled = false;
+        submitBtn.textContent = '發送';
+        return;
+      }
+      
+      input.value = '';
+      submitBtn.disabled = false;
+      submitBtn.textContent = '發送';
+      
+      // 觸發 AI 回覆（透過 Edge Function）
+      triggerAIReply(data[0]);
+    }
+    
+    // ============================================================
+    // 觸發 AI 回覆
+    // ============================================================
+    async function triggerAIReply(comment) {
+      // 方法 1：直接呼叫 Edge Function（推薦）
+      try {
+        const { data, error } = await supabase.functions.invoke('su-shi-reply', {
+          body: { record: comment }
+        });
+        
+        if (error) {
+          console.error('AI 回覆失敗：', error);
+          // 如果 Edge Function 還沒部署，使用固定回覆模板
+          useFallbackReply(comment.id);
+        }
+      } catch (err) {
+        console.error('呼叫 Edge Function 失敗：', err);
+        // 使用固定回覆模板
+        useFallbackReply(comment.id);
+      }
+    }
+    
+    // 固定回覆模板（當 AI API 不可用時）
+    const FALLBACK_REPLIES = [
+      '諸位安好。月色甚美，諸位可願與吾共賞？',
+      '哈哈，甚好甚好！諸位以為如何？',
+      '月圓之夜，思念故人。諸位可有何感觸？',
+      '人生如月，有圓有缺。諸位且珍惜當下。',
+      '美酒配明月，人生一大樂事也！諸位以為然否？',
+      '子由（蘇轍）若在，定當共飲。諸位有兄弟姊妹否？',
+      '但願人長久，千里共嬋娟。諸位以為這句何解？',
+      '密州雖好，終非故鄉。諸位可有思鄉之時？'
+    ];
+    
+    async function useFallbackReply(commentId) {
+      const randomReply = FALLBACK_REPLIES[Math.floor(Math.random() * FALLBACK_REPLIES.length)];
+      
+      // 延遲 2-4 秒，模擬「正在輸入」
+      await new Promise(resolve => setTimeout(resolve, 2000 + Math.random() * 2000));
+      
+      const { error } = await supabase
+        .from('comments')
+        .update({
+          ai_reply: randomReply,
+          replied_at: new Date().toISOString(),
+          is_replying: false
+        })
+        .eq('id', commentId);
+      
+      if (error) {
+        console.error('更新 AI 回覆失敗：', error);
+      }
+    }
+    
+    // ============================================================
+    // 教師後台
+    // ============================================================
+    function openTeacherPanel() {
+      const password = prompt('請輸入教師密碼：');
+      if (password !== TEACHER_PASSWORD) {
+        if (password !== null) {
+          alert('密碼錯誤');
+        }
+        return;
+      }
+      
+      document.getElementById('teacherModal').classList.add('show');
+      loadTeacherComments();
+    }
+    
+    function closeTeacherPanel() {
+      document.getElementById('teacherModal').classList.remove('show');
+    }
+    
+    function switchTab(tab, btn) {
+      // 更新按鈕樣式
+      document.querySelectorAll('.teacher-tab').forEach(t => t.classList.remove('active'));
+      btn.classList.add('active');
+      
+      if (tab === 'comments') {
+        loadTeacherComments();
+      } else if (tab === 'stats') {
+        loadTeacherStats();
+      }
+    }
+    
+    async function loadTeacherComments() {
+      const content = document.getElementById('teacherContent');
+      content.innerHTML = '<p>載入中...</p>';
+      
+      const { data, error } = await supabase
+        .from('comments')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (error) {
+        content.innerHTML = '<p>載入失敗</p>';
+        return;
+      }
+      
+      if (data.length === 0) {
+        content.innerHTML = '<p>還沒有留言</p>';
+        return;
+      }
+      
+      content.innerHTML = `
+        <div style="margin-bottom: 15px;">
+          <button class="teacher-btn" onclick="exportCSV()">📥 匯出 CSV</button>
+          <button class="teacher-btn danger" onclick="deleteAllComments()">🗑️ 刪除全部留言</button>
+        </div>
+        <div style="max-height: 50vh; overflow-y: auto;">
+          ${data.map(c => `
+            <div style="padding: 10px; border-bottom: 1px solid #f0f0f0;">
+              <strong>${escapeHtml(c.student_name)}</strong>
+              <span style="color: #999; font-size: 12px;">${formatTime(c.created_at)}</span>
+              <p style="margin: 5px 0;">${escapeHtml(c.content)}</p>
+              ${c.ai_reply ? `<p style="color: #667eea; font-size: 13px;">💬 ${escapeHtml(c.ai_reply)}</p>` : ''}
+              <button class="teacher-btn danger" onclick="deleteComment('${c.id}')">刪除</button>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    }
+    
+    async function loadTeacherStats() {
+      const content = document.getElementById('teacherContent');
+      content.innerHTML = '<p>載入中...</p>';
+      
+      const { data, error } = await supabase
+        .from('comments')
+        .select('student_name');
+      
+      if (error) {
+        content.innerHTML = '<p>載入失敗</p>';
+        return;
+      }
+      
+      // 統計每位學生的留言數
+      const stats = {};
+      data.forEach(c => {
+        stats[c.student_name] = (stats[c.student_name] || 0) + 1;
+      });
+      
+      const sorted = Object.entries(stats).sort((a, b) => b[1] - a[1]);
+      
+      content.innerHTML = `
+        <h3>留言統計</h3>
+        <p style="color: #999; margin-bottom: 15px;">總留言數：${data.length}</p>
+        <div>
+          ${sorted.map(([name, count], i) => `
+            <div style="display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #f0f0f0;">
+              <span>${i + 1}. ${escapeHtml(name)}</span>
+              <strong>${count} 則留言</strong>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    }
+    
+    async function deleteComment(id) {
+      if (!confirm('確定要刪除這則留言嗎？')) return;
+      
+      const { error } = await supabase
+        .from('comments')
+        .delete()
+        .eq('id', id);
+      
+      if (error) {
+        alert('刪除失敗');
+        return;
+      }
+      
+      loadTeacherComments();
+    }
+    
+    async function deleteAllComments() {
+      if (!confirm('確定要刪除全部留言嗎？此操作不可復原！')) return;
+      
+      const { error } = await supabase
+        .from('comments')
+        .delete()
+        .neq('id', '00000000-0000-0000-0000-000000000000');
+      
+      if (error) {
+        alert('刪除失敗');
+        return;
+      }
+      
+      loadTeacherComments();
+    }
+    
+    function exportCSV() {
+      supabase
+        .from('comments')
+        .select('*')
+        .order('created_at', { ascending: true })
+        .then(({ data, error }) => {
+          if (error) {
+            alert('匯出失敗');
+            return;
+          }
+          
+          const csv = [
+            ['時間', '學生姓名', '留言內容', '蘇軾回覆', '回覆時間'],
+            ...data.map(c => [
+              formatTime(c.created_at),
+              c.student_name,
+              c.content,
+              c.ai_reply || '',
+              c.replied_at ? formatTime(c.replied_at) : ''
+            ])
+          ].map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
+          
+          const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `蘇軾朋友圈留言_${new Date().toISOString().slice(0,10)}.csv`;
+          a.click();
+          URL.revokeObjectURL(url);
+        });
+    }
+    
+    // ============================================================
+    // 工具函數
+    // ============================================================
+    function formatTime(isoString) {
+      if (!isoString) return '';
+      const date = new Date(isoString);
+      const now = new Date();
+      const diff = (now - date) / 1000; // 秒
+      
+      if (diff < 60) return '剛剛';
+      if (diff < 3600) return `${Math.floor(diff / 60)}分鐘前`;
+      if (diff < 86400) return `${Math.floor(diff / 3600)}小時前`;
+      
+      return date.toLocaleDateString('zh-Hant', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    }
+    
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+    
+    function formatAIReply(reply) {
+      // 將換行轉為 <br>
+      return escapeHtml(reply).replace(/\n/g, '<br>');
+    }
+    
+    function scrollToInput() {
+      document.getElementById('commentInput').focus();
+    }
+  </script>
+</body>
+</html>
