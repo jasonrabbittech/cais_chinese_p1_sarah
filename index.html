@@ -154,43 +154,34 @@
       padding-left: 4px;
     }
 
-    /* 橫向兩個點（真正的兩點，不是兩組三點） */
+    /* 橫向兩個點（真正的兩點，橫向排列） */
     .more-dots-h {
       background: none;
       border: none;
       color: #b2b2b2;
       cursor: pointer;
-      padding: 4px 10px;
+      padding: 4px 8px;
       line-height: 1;
-      font-size: 0;
-    }
-    .more-dots-h::before {
-      content: '';
-      display: inline-flex;
-      gap: 5px;
-      align-items: center;
-    }
-    .more-dots-h::after {
-      content: '• •';
-      font-size: 22px;
-      letter-spacing: 3px;
+      font-size: 18px;
+      letter-spacing: 5px;
+      white-space: nowrap;
     }
 
-    /* 深灰色彈出菜單 — 從右向左展開 */
+    /* 深灰色彈出菜單 — 從右向左展開，橫向排列 */
     .more-popup {
       position: absolute;
       bottom: 42px;
       right: 14px;
       background: #4c4c4c;
       border-radius: 8px;
-      padding: 5px 0;
-      min-width: 148px;
+      padding: 5px 8px;
+      min-width: 200px;
       box-shadow: 0 4px 20px rgba(0,0,0,0.28);
       display: none;
       z-index: 50;
     }
 
-    .more-popup.show { display: block; animation: popIn 0.15s ease; }
+    .more-popup.show { display: flex; animation: popIn 0.15s ease; gap: 4px; }
 
     @keyframes popIn {
       from { opacity: 0; transform: scale(0.9) translateX(10px); }
@@ -198,11 +189,11 @@
     }
 
     .popup-item {
-      display: flex;
+      display: inline-flex;
       align-items: center;
-      gap: 10px;
-      width: 100%;
-      padding: 11px 18px;
+      gap: 8px;
+      width: auto;
+      padding: 10px 16px;
       background: none;
       border: none;
       color: white;
@@ -576,7 +567,7 @@
       <!-- 操作欄：時間 + 橫向兩點 -->
       <div class="post-actions-row">
         <span class="post-time" id="postTime"></span>
-        <button class="more-dots-h" onclick="togglePopup()"></button>
+        <button class="more-dots-h" onclick="togglePopup()">··</button>
         
         <!-- 深灰色彈出菜單（向左展開） -->
         <div class="more-popup" id="morePopup">
