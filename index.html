@@ -3,16 +3,17 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>蘇軾的朋友圈 — 互動教學</title>
+  <title>蘇軾的朋友圈</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    
+
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang TC", "Microsoft JhengHei", sans-serif;
-      background: #f5f5f5;
+      background: #ededed;
       color: #333;
       line-height: 1.6;
+      -webkit-tap-highlight-color: transparent;
     }
 
     .container {
@@ -20,195 +21,116 @@
       margin: 0 auto;
       background: #fff;
       min-height: 100vh;
-      box-shadow: 0 0 20px rgba(0,0,0,0.1);
+      box-shadow: 0 0 20px rgba(0,0,0,0.08);
+      position: relative;
+      padding-bottom: 60px;
     }
 
-    /* ===== 頂部導航 ===== */
+    /* ===== 頂部導航（簡潔，無標題文字） ===== */
     .header {
       background: #ededed;
       padding: 12px 16px;
       display: flex;
       align-items: center;
-      justify-content: center;
+      justify-content: space-between;
       position: sticky;
       top: 0;
       z-index: 100;
       border-bottom: 1px solid #d9d9d9;
     }
-    
-    .header h1 {
+
+    .header-left {
+      width: 24px;
+    }
+
+    .header-title {
       font-size: 17px;
       font-weight: 500;
       color: #000;
     }
 
-    .header-btn {
-      position: absolute;
-      right: 14px;
-      background: none;
-      border: none;
-      color: #576b95;
-      font-size: 14px;
-      cursor: pointer;
-      font-weight: 400;
-    }
-
-    /* ===== 帖子圖片區域（朋友圈主圖） ===== */
+    /* ===== 帖子圖片區域（使用背景圖片） ===== */
     .post-image-area {
       width: 100%;
-      height: 280px;
-      background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+      height: 300px;
+      background: url('post-bg.jpg') center top / cover no-repeat;
       position: relative;
       overflow: hidden;
     }
-    
-    /* 月亮 */
-    .moon {
-      position: absolute;
-      width: 90px;
-      height: 90px;
-      background: radial-gradient(circle, #fffde7 0%, #ffd54f 50%, #ff8f00 100%);
-      border-radius: 50%;
-      top: 35px;
-      right: 55px;
-      box-shadow: 0 0 60px rgba(255,215,0,0.7), 0 0 120px rgba(255,193,7,0.3);
-    }
-    
-    /* 月亮光暈 */
-    .moon::after {
-      content: '';
-      position: absolute;
-      width: 140%;
-      height: 140%;
-      top: -20%;
-      left: -20%;
-      border-radius: 50%;
-      background: radial-gradient(circle, rgba(255,255,220,0.15) 0%, transparent 70%);
-    }
 
-    /* 山影 */
-    .mountains {
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      width: 100%;
-      height: 100px;
-    }
-    
-    .mountain {
-      position: absolute;
-      bottom: 0;
-      width: 0;
-      height: 0;
-      border-style: solid;
-    }
-    
-    .m1 {
-      left: -30px;
-      border-width: 0 130px 85px 120px;
-      border-color: transparent transparent #151a2d transparent;
-    }
-    
-    .m2 {
-      left: 80px;
-      border-width: 0 150px 110px 130px;
-      border-color: transparent transparent #1a2040 transparent;
-    }
-    
-    .m3 {
-      right: -40px;
-      border-width: 0 120px 75px 100px;
-      border-color: transparent transparent #121729 transparent;
-    }
-
-    /* 星星 */
-    .stars {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-    }
-    
-    .star {
-      position: absolute;
-      width: 2px;
-      height: 2px;
-      background: white;
-      border-radius: 50%;
-      opacity: 0.6;
-    }
-
-    /* 作者信息疊加層（圖片右下角）—— 微信朋友圈標準樣式 */
+    /* 作者信息疊加層（圖片右下角） */
     .post-author-overlay {
       position: absolute;
-      bottom: 15px;
-      right: 15px;
+      bottom: 14px;
+      right: 14px;
       display: flex;
       align-items: center;
       gap: 10px;
       z-index: 10;
     }
-    
+
     .post-author-name-overlay {
       color: white;
-      font-size: 16px;
+      font-size: 17px;
       font-weight: 600;
-      text-shadow: 0 1px 4px rgba(0,0,0,0.7);
+      text-shadow: 0 1px 5px rgba(0,0,0,0.75);
       letter-spacing: 1px;
     }
-    
+
+    /* 頭像放大 1.5 倍面積 ≈ 1.22 倍邊長，原 44px → ~54px */
     .post-avatar-overlay {
-      width: 44px;
-      height: 44px;
-      border-radius: 6px;
+      width: 54px;
+      height: 54px;
+      border-radius: 8px;
       background: url('sushi-avatar.jpg') center/cover no-repeat;
-      border: 2px solid rgba(255,255,255,0.9);
-      box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+      border: 2.5px solid rgba(255,255,255,0.92);
+      box-shadow: 0 2px 10px rgba(0,0,0,0.45);
       overflow: hidden;
     }
 
     /* ===== 帖子內容區域 ===== */
     .post-body {
-      padding: 14px 16px;
+      padding: 13px 16px 8px;
     }
-    
+
     .post-user-row {
       display: flex;
       align-items: center;
-      margin-bottom: 10px;
+      margin-bottom: 7px;
     }
-    
+
     .post-user-avatar {
-      width: 42px;
-      height: 42px;
-      border-radius: 6px;
+      width: 54px;
+      height: 54px;
+      border-radius: 8px;
       background: url('sushi-avatar.jpg') center/cover no-repeat;
       flex-shrink: 0;
-      margin-right: 10px;
+      margin-right: 11px;
     }
-    
+
     .post-user-name {
-      font-size: 16px;
-      font-weight: 600;
+      font-size: 17px;
+      font-weight: 500;
       color: #576b95;
     }
-    
+
     .post-text {
       font-size: 15px;
-      line-height: 1.7;
+      line-height: 1.65;
       color: #333;
-      margin-bottom: 10px;
+      margin-bottom: 8px;
       word-break: break-all;
+      padding-left: 65px;
     }
-    
+
     .post-tags {
       display: flex;
       flex-wrap: wrap;
       gap: 6px;
-      margin-top: 10px;
+      margin-top: 6px;
+      padding-left: 65px;
     }
-    
+
     .post-tag {
       background: #f0f0f0;
       color: #576b95;
@@ -217,161 +139,201 @@
       font-size: 12px;
     }
 
-    /* ===== 操作欄（微信風格） ===== */
+    /* ===== 時間 + 橫向兩點操作 ===== */
     .post-actions-row {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 10px 16px 12px;
+      padding: 8px 16px 6px;
       position: relative;
-      border-bottom: 1px solid #f0f0f0;
     }
-    
+
     .post-time {
       font-size: 13px;
-      color: #999;
+      color: #b2b2b2;
+      padding-left: 4px;
     }
-    
-    .action-buttons {
-      display: flex;
-      gap: 18px;
-    }
-    
-    .action-btn {
+
+    /* 橫向兩個點 */
+    .more-dots-h {
       background: none;
       border: none;
-      font-size: 13px;
-      color: #999;
+      font-size: 20px;
+      color: #b2b2b2;
       cursor: pointer;
-      padding: 4px 8px;
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      transition: color 0.15s;
-    }
-    
-    .action-btn:active { opacity: 0.5; }
-    .action-btn.liked { color: #fa5151; }
-    .action-btn svg { width: 18px; height: 18px; fill: currentColor; }
-    
-    .more-dots {
-      background: none;
-      border: none;
-      font-size: 22px;
-      color: #999;
-      cursor: pointer;
-      padding: 4px 8px;
-      letter-spacing: 2px;
+      padding: 4px 10px;
+      letter-spacing: 4px;
       line-height: 1;
     }
-    
-    /* 更多菜單彈出 */
+
+    /* 深灰色彈出菜單 — 從右向左展開 */
     .more-popup {
       position: absolute;
-      bottom: 48px;
-      right: 16px;
+      bottom: 42px;
+      right: 14px;
       background: #4c4c4c;
       border-radius: 8px;
-      padding: 6px 0;
-      min-width: 130px;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+      padding: 5px 0;
+      min-width: 148px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.28);
       display: none;
       z-index: 50;
     }
-    
+
     .more-popup.show { display: block; animation: popIn 0.15s ease; }
-    
+
     @keyframes popIn {
-      from { opacity: 0; transform: scale(0.92); }
-      to { opacity: 1; transform: scale(1); }
+      from { opacity: 0; transform: scale(0.9) translateX(10px); }
+      to { opacity: 1; transform: scale(1) translateX(0); }
     }
-    
+
     .popup-item {
-      display: block;
+      display: flex;
+      align-items: center;
+      gap: 10px;
       width: 100%;
-      padding: 10px 18px;
+      padding: 11px 18px;
       background: none;
       border: none;
       color: white;
-      font-size: 14px;
+      font-size: 15px;
       text-align: left;
       cursor: pointer;
     }
-    
+
+    .popup-item svg { width: 20px; height: 20px; fill: white; flex-shrink: 0; }
     .popup-item:active { background: #666; }
+
+    /* ===== 點讚區（心形圖標 + 頭像列表） ===== */
+    .likes-section {
+      display: none;
+      padding: 8px 16px 6px;
+      background: #f7f7f7;
+      margin: 0 12px 0;
+      border-radius: 4px;
+    }
+    .likes-section.has-likes { display: block; }
+
+    .likes-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .heart-icon-sm { 
+      color: #576b95; 
+      font-size: 15px; 
+      flex-shrink: 0;
+    }
+
+    .like-avatar-list {
+      display: flex;
+      gap: 4px;
+      flex-wrap: wrap;
+    }
+
+    .like-avatar-thumb {
+      width: 26px;
+      height: 26px;
+      border-radius: 4px;
+      background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+      border: 1px solid #e0e0e0;
+      object-fit: cover;
+    }
 
     /* ===== 留言區 ===== */
     .comments-section {
-      padding: 8px 16px 100px;
-      background: #f5f5f5;
-    }
-    
-    .comments-title {
-      font-size: 14px;
-      color: #999;
-      padding: 10px 0 8px;
+      padding: 6px 16px 100px;
+      background: #fff;
     }
 
     .comment-card {
-      background: #fff;
+      background: #f7f7f7;
       border-radius: 4px;
-      padding: 12px 14px;
-      margin-bottom: 6px;
+      padding: 10px 12px;
+      margin-bottom: 5px;
       animation: fadeUp 0.25s ease;
     }
-    
+
     @keyframes fadeUp {
-      from { opacity: 0; transform: translateY(8px); }
+      from { opacity: 0; transform: translateY(6px); }
       to { opacity: 1; transform: translateY(0); }
     }
-    
+
     .comment-row {
       display: flex;
       align-items: flex-start;
+      position: relative;
     }
-    
+
+    /* 左上角 voice bubble 圖示 */
+    .comment-bubble-icon {
+      position: absolute;
+      top: 0;
+      left: -18px;
+      color: #8e8e93;
+      font-size: 14px;
+    }
+
     .c-avatar {
-      width: 32px;
-      height: 32px;
-      border-radius: 4px;
+      width: 34px;
+      height: 34px;
+      border-radius: 5px;
       display: flex;
       align-items: center;
       justify-content: center;
       font-size: 14px;
       color: white;
       flex-shrink: 0;
-      margin-right: 10px;
+      margin-right: 9px;
+      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      object-fit: cover;
     }
-    
-    .c-avatar.student { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
-    .c-avatar.sushi { background: url('sushi-avatar.jpg') center/cover no-repeat; }
-    
+
+    .c-avatar.sushi { background: url('sushi-avatar.jpg') center/cover no-repeat !important; }
+
     .c-body { flex: 1; min-width: 0; }
-    
-    .c-name {
-      font-size: 13px;
-      color: #576b95;
+
+    .c-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
       margin-bottom: 2px;
     }
-    
+
+    .c-name {
+      font-size: 14px;
+      color: #576b95;
+      font-weight: 500;
+    }
+
+    .c-time {
+      font-size: 11px;
+      color: #b2b2b2;
+      flex-shrink: 0;
+      margin-left: 8px;
+    }
+
     .c-text {
       font-size: 14px;
       color: #333;
       line-height: 1.5;
       word-break: break-word;
     }
-    
+
+    /* AI 回覆樣式 */
     .ai-reply-box {
-      margin-top: 10px;
-      padding: 10px 12px;
-      background: linear-gradient(135deg, #f8f9ff 0%, #f0eeff 100%);
-      border-radius: 6px;
-      border-left: 3px solid #667eea;
+      margin-top: 8px;
+      padding: 9px 11px;
+      background: #fff;
+      border-radius: 4px;
+      border-left: 3px solid #576b95;
     }
-    
+
     .ai-badge {
       display: inline-block;
-      background: #667eea;
+      background: #576b95;
       color: white;
       font-size: 10px;
       padding: 1px 6px;
@@ -388,38 +350,60 @@
       transform: translateX(-50%);
       width: 100%;
       max-width: 500px;
-      background: #ededed;
-      border-top: 1px solid #d9d9d9;
-      padding: 10px 14px;
+      background: #f7f7f7;
+      border-top: 1px solid #ddd;
+      padding: 10px 12px;
       display: flex;
       gap: 8px;
       align-items: center;
       z-index: 100;
     }
-    
+
     .input-bar input {
       flex: 1;
-      background: white;
+      background: #fff;
       border: none;
-      border-radius: 18px;
-      padding: 9px 14px;
+      border-radius: 20px;
+      padding: 8px 14px;
       font-size: 14px;
       outline: none;
       font-family: inherit;
     }
-    
+
     .input-bar button {
       background: #07c160;
       color: white;
       border: none;
       padding: 8px 18px;
-      border-radius: 18px;
+      border-radius: 20px;
       font-size: 14px;
       cursor: pointer;
       white-space: nowrap;
     }
-    
+
     .input-bar button:disabled { background: #ccc; cursor: not-allowed; }
+
+    /* ===== 教師後台入口（右下角固定） ===== */
+    .teacher-fab {
+      position: fixed;
+      bottom: 72px;
+      right: calc(50% - 250px + 10px);
+      z-index: 90;
+      background: rgba(87,107,149,0.88);
+      color: white;
+      border: none;
+      border-radius: 20px;
+      padding: 7px 14px;
+      font-size: 12px;
+      cursor: pointer;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.18);
+      backdrop-filter: blur(4px);
+      transition: background 0.2s;
+    }
+    @media (max-width: 520px) {
+      .teacher-fab { right: 10px; }
+    }
+    .teacher-fab:hover, .teacher-fab:active { background: #576b95; }
 
     /* ===== Modal ===== */
     .modal-mask {
@@ -431,7 +415,7 @@
       justify-content: center;
       z-index: 2000;
     }
-    
+
     .modal-card {
       background: white;
       border-radius: 14px;
@@ -440,119 +424,54 @@
       max-width: 320px;
       text-align: center;
     }
-    
-    .modal-card h2 {
-      font-size: 19px;
-      color: #333;
-      margin-bottom: 8px;
-    }
-    
-    .modal-card p {
-      font-size: 13px;
-      color: #888;
-      margin-bottom: 18px;
-    }
+
+    .modal-card h2 { font-size: 19px; color: #333; margin-bottom: 8px; }
+    .modal-card p { font-size: 13px; color: #888; margin-bottom: 18px; }
     
     .modal-card input {
-      width: 100%;
-      padding: 11px 14px;
-      border: 1px solid #ddd;
-      border-radius: 10px;
-      font-size: 15px;
-      outline: none;
-      margin-bottom: 16px;
-      font-family: inherit;
+      width: 100%; padding: 11px 14px; border: 1px solid #ddd;
+      border-radius: 10px; font-size: 15px; outline: none;
+      margin-bottom: 16px; font-family: inherit;
     }
-    
     .modal-card input:focus { border-color: #576b95; }
-    
     .modal-card button {
-      width: 100%;
-      padding: 11px;
-      background: #07c160;
-      color: white;
-      border: none;
-      border-radius: 10px;
-      font-size: 16px;
-      cursor: pointer;
-      font-family: inherit;
+      width: 100%; padding: 11px; background: #07c160; color: white;
+      border: none; border-radius: 10px; font-size: 16px; cursor: pointer; font-family: inherit;
     }
 
-    /* ===== 教師後台 ===== */
+    /* ===== 教師後台面板 ===== */
     .t-modal {
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.55);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      z-index: 2000;
+      position: fixed; inset: 0; background: rgba(0,0,0,0.55);
+      display: none; align-items: center; justify-content: center; z-index: 2000;
     }
     .t-modal.show { display: flex; }
-    
+
     .t-panel {
-      background: white;
-      border-radius: 14px;
-      padding: 24px;
-      width: 94%;
-      max-width: 480px;
-      max-height: 82vh;
-      overflow-y: auto;
+      background: white; border-radius: 14px; padding: 24px;
+      width: 94%; max-width: 480px; max-height: 82vh; overflow-y: auto;
     }
+    .t-panel h2 { font-size: 18px; margin-bottom: 16px; }
     
-    .t-panel h2 {
-      font-size: 18px;
-      margin-bottom: 16px;
-    }
-    
-    .t-tabs {
-      display: flex;
-      gap: 8px;
-      margin-bottom: 16px;
-      border-bottom: 1px solid #eee;
-    }
-    
+    .t-tabs { display: flex; gap: 8px; margin-bottom: 16px; border-bottom: 1px solid #eee; }
     .t-tab {
-      padding: 8px 14px;
-      background: none;
-      border: none;
-      font-size: 13px;
-      color: #999;
-      cursor: pointer;
-      border-bottom: 2px solid transparent;
-      margin-bottom: -1px;
+      padding: 8px 14px; background: none; border: none;
+      font-size: 13px; color: #999; cursor: pointer;
+      border-bottom: 2px solid transparent; margin-bottom: -1px;
     }
-    
     .t-tab.active { color: #576b95; border-bottom-color: #576b95; }
-    
+
     .t-btn {
-      padding: 6px 12px;
-      background: #576b95;
-      color: white;
-      border: none;
-      border-radius: 6px;
-      font-size: 12px;
-      cursor: pointer;
-      margin: 4px;
-      font-family: inherit;
+      padding: 6px 12px; background: #576b95; color: white;
+      border: none; border-radius: 6px; font-size: 12px; cursor: pointer;
+      margin: 4px; font-family: inherit;
     }
     .t-btn.danger { background: #fa5151; }
-    
     .t-close {
-      float: right;
-      background: none;
-      border: none;
-      font-size: 22px;
-      color: #bbb;
-      cursor: pointer;
+      float: right; background: none; border: none; font-size: 22px;
+      color: #bbb; cursor: pointer;
     }
 
-    .empty-hint {
-      text-align: center;
-      padding: 36px 16px;
-      color: #bbb;
-      font-size: 14px;
-    }
+    .empty-hint { text-align: center; padding: 36px 16px; color: #bbb; font-size: 14px; }
     .empty-hint .emoji { font-size: 40px; margin-bottom: 10px; display: block; }
   </style>
 </head>
@@ -584,10 +503,10 @@
   <!-- 主容器 -->
   <div class="container">
 
-    <!-- 頂部導航 -->
+    <!-- 頂部導航（無「朋友圈」字樣） -->
     <div class="header">
-      <h1>朋友圈</h1>
-      <button class="header-btn" onclick="openTeacher()">教師後台</button>
+      <span class="header-left">←</span>
+      <span class="header-title"></span>
     </div>
 
     <!-- 蘇軾帖子 -->
@@ -595,18 +514,7 @@
       
       <!-- 圖片區域 -->
       <div class="post-image-area">
-        <!-- 星星 -->
-        <div class="stars" id="starField"></div>
-        <!-- 月亮 -->
-        <div class="moon"></div>
-        <!-- 山影 -->
-        <div class="mountains">
-          <div class="mountain m1"></div>
-          <div class="mountain m2"></div>
-          <div class="mountain m3"></div>
-        </div>
-        
-        <!-- 右下角作者信息（微信朋友圈標準樣式） -->
+        <!-- 右下角作者信息疊加 -->
         <div class="post-author-overlay">
           <span class="post-author-name-overlay">蘇軾</span>
           <div class="post-avatar-overlay"></div>
@@ -637,31 +545,35 @@
         </div>
       </div>
       
-      <!-- 操作欄 -->
+      <!-- 操作欄：時間 + 橫向兩點 -->
       <div class="post-actions-row">
-        <span class="post-time" id="postTime">剛剛</span>
-        <div class="action-buttons">
-          <button class="action-btn" id="likeBtn" onclick="toggleLike()">
-            <svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
-            <span id="likeLabel">Like</span>
-          </button>
-          <button class="action-btn" onclick="focusInput()">
-            💬 <span id="actionCommentCount">0</span>
-          </button>
-          <button class="more-dots" onclick="togglePopup()">⋮</button>
-        </div>
+        <span class="post-time" id="postTime">23 May 2026 11:32 PM</span>
+        <button class="more-dots-h" onclick="togglePopup()">⋮⋮</button>
         
-        <!-- 彈出菜單 -->
+        <!-- 深灰色彈出菜單（向左展開） -->
         <div class="more-popup" id="morePopup">
-          <button class="popup-item" onclick="toggleLike(); closePopup()">👍 讚</button>
-          <button class="popup-item" onclick="focusInput(); closePopup()">💬 留言</button>
+          <button class="popup-item" onclick="toggleLike(); closePopup()">
+            <svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+            Like
+          </button>
+          <button class="popup-item" onclick="focusInput(); closePopup()">
+            <svg viewBox="0 0 24 24"><path d="M21 6h-2v9H6v2c0 .55.45 1 1 1h11l4 4V7c0-.55-.45-1-1-1zm-4 6V3c0-.55-.45-1-1-1H3c-.55 0-1 .45-1 1v14l4-4h10c.55 0 1-.45 1-1z"/></svg>
+            Comment
+          </button>
+        </div>
+      </div>
+
+      <!-- 點讚區：心形 + 頭像列表 -->
+      <div class="likes-section" id="likesSection">
+        <div class="likes-row">
+          <span class="heart-icon-sm">♡</span>
+          <div class="like-avatar-list" id="likeAvatarList"></div>
         </div>
       </div>
     </div>
     
     <!-- 留言區 -->
-    <div class="comments-section">
-      <div class="comments-title">留言 (<span id="commentCountText">0</span>)</div>
+    <div class="comments-section" id="commentsSection">
       <div id="commentsList">
         <div class="empty-hint">
           <span class="emoji">💬</span>
@@ -671,9 +583,12 @@
     </div>
   </div>
 
+  <!-- 教師後台入口（頁面右下角） -->
+  <button class="teacher-fab" onclick="openTeacher()">🎓 教師後台</button>
+
   <!-- 底部輸入欄 -->
   <div class="input-bar">
-    <input type="text" id="commentInput" placeholder="說點什麼..." maxlength="200" onkeypress="if(event.key==='Enter') submitComment()">
+    <input type="text" id="commentInput" placeholder="Comment:" maxlength="200" onkeypress="if(event.key==='Enter') submitComment()">
     <button id="submitBtn" onclick="submitComment()">發送</button>
   </div>
 
@@ -689,21 +604,6 @@ let currentUserName = '';
 let isLiked = false;
 let likeCount = 128;
 const TEACHER_PASSWORD = 'cais2024';
-
-// ========== 生成星星背景 ==========
-(function genStars() {
-  const field = document.getElementById('starField');
-  if (!field) return;
-  for (let i = 0; i < 30; i++) {
-    const s = document.createElement('div');
-    s.className = 'star';
-    s.style.left = Math.random() * 100 + '%';
-    s.style.top = Math.random() * 65 + '%';
-    s.style.width = s.style.height = (Math.random() * 2 + 1) + 'px';
-    s.style.opacity = Math.random() * 0.5 + 0.3;
-    field.appendChild(s);
-  }
-})();
 
 // ========== 初始化 ==========
 window.addEventListener('DOMContentLoaded', async () => {
@@ -721,29 +621,40 @@ window.addEventListener('DOMContentLoaded', async () => {
 function loadLikeState() {
   if (localStorage.getItem('su_shi_like') === 'true') {
     isLiked = true;
-    const btn = document.getElementById('likeBtn');
-    btn.classList.add('liked');
-    document.getElementById('likeLabel').textContent = likeCount;
+    updateLikesUI();
   } else {
-    document.getElementById('likeLabel').textContent = likeCount;
+    updateLikesUI();
   }
 }
 
 function toggleLike() {
   isLiked = !isLiked;
-  const btn = document.getElementById('likeBtn');
   if (isLiked) {
     likeCount++;
-    btn.classList.add('liked');
-    document.getElementById('likeLabel').textContent = likeCount;
     localStorage.setItem('su_shi_like', 'true');
   } else {
     likeCount--;
-    btn.classList.remove('liked');
-    document.getElementById('likeLabel').textContent = likeCount;
     localStorage.setItem('su_shi_like', 'false');
   }
-  closePopup();
+  updateLikesUI();
+}
+
+function updateLikesUI() {
+  const section = document.getElementById('likesSection');
+  if (isLiked || likeCount > 128) {
+    section.classList.add('has-likes');
+    let avatarsHTML = '';
+    // 如果當前用戶點了讚，顯示自己的頭像
+    if (isLiked && currentUserName) {
+      avatarsHTML += `<div class="like-avatar-thumb" title="${esc(currentUserName)}">${esc(currentUserName)[0]}</div>`;
+    }
+    document.getElementById('likeAvatarList').innerHTML = avatarsHTML;
+    // 更新心形圖示顏色
+    const heartIcon = section.querySelector('.heart-icon-sm');
+    if (heartIcon) heartIcon.style.color = isLiked ? '#576b95' : '#576b95';
+  } else {
+    section.classList.remove('has-likes');
+  }
 }
 
 // ========== 更多菜單 ==========
@@ -754,7 +665,7 @@ function closePopup() {
   document.getElementById('morePopup').classList.remove('show');
 }
 document.addEventListener('click', e => {
-  if (!e.target.closest('.more-popup') && !e.target.closest('.more-dots')) closePopup();
+  if (!e.target.closest('.more-popup') && !e.target.closest('.more-dots-h')) closePopup();
 });
 
 // ========== 姓名 ==========
@@ -778,22 +689,25 @@ async function loadComments() {
 
 function renderComments(comments) {
   const el = document.getElementById('commentsList');
-  const countEls = ['#commentCountText', '#actionCommentCount'];
-  
+
   if (!comments || comments.length === 0) {
     el.innerHTML = '<div class="empty-hint"><span class="emoji">💬</span><p>還沒有留言，來搶沙發吧！</p></div>';
-    countEls.forEach(s => { const e = document.querySelector(s); if(e)e.textContent='0'; });
     return;
   }
-  
-  countEls.forEach(s => { const e = document.querySelector(s); if(e)e.textContent=comments.length; });
 
-  el.innerHTML = comments.map(c => `
+  // 按時間倒序排列（最新的在上面）
+  const sorted = [...comments].reverse();
+
+  el.innerHTML = sorted.map(c => `
     <div class="comment-card" id="comment-${c.id}">
       <div class="comment-row">
+        <span class="comment-bubble-icon">💬</span>
         <div class="c-avatar student">${esc(c.student_name)[0]}</div>
         <div class="c-body">
-          <div class="c-name">${esc(c.student_name)}</div>
+          <div class="c-header">
+            <span class="c-name">${esc(c.student_name)}</span>
+            <span class="c-time">${fmtT(c.created_at)}</span>
+          </div>
           <div class="c-text">${esc(c.content)}</div>
         </div>
       </div>
@@ -802,7 +716,10 @@ function renderComments(comments) {
         <div class="comment-row">
           <div class="c-avatar sushi"></div>
           <div class="c-body">
-            <div class="c-name">蘇軾<span class="ai-badge">AI</span></div>
+            <div class="c-header">
+              <span class="c-name">蘇軾<span class="ai-badge">AI</span></span>
+              <span class="c-time">${fmtT(c.replied_at)}</span>
+            </div>
             <div class="c-text">${esc(c.ai_reply).replace(/\n/g,'<br>')}</div>
           </div>
         </div>
@@ -837,7 +754,7 @@ async function submitComment() {
     if (error) { alert('發送失敗'); btn.disabled=false; btn.textContent='發送'; return; }
 
     input.value = '';
-    btn.disabled = false; btn.textContent = '發送';
+    btn.disabled = false; btn.textContent='發送';
 
     if (data && data[0]) triggerAI(data[0]);
   } catch(e) {
@@ -951,7 +868,7 @@ function fmtT(iso){
   if(diff<60)return'剛剛';
   if(diff<3600)return Math.floor(diff/60)+'分鐘前';
   if(diff<86400)return Math.floor(diff/3600)+'小時前';
-  return d.toLocaleDateString('zh-Hant',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
+  return d.toLocaleDateString('en-US',{day:'numeric',month:'short',year:'numeric'})+' '+d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
 }
 function focusInput(){document.getElementById('commentInput').focus(); closePopup();}
 </script>
