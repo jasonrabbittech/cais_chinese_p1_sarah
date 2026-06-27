@@ -788,10 +788,19 @@ async function submitComment() {
 // ========== AI 回覆 ==========
 async function triggerAI(comment) {
   try {
-    const { error } = await client.functions.invoke('su-shi-reply', { body: { record: comment } });
-    if (error) { console.log('Edge Function error, using fallback'); fallback(comment.id); }
+    const { data, error } = await client.functions.invoke('su-shi-reply', { body: { record: comment } });
+    if (error || !data || !data.reply) {
+      console.log('Edge Function 未返回回复，使用 fallback', error || data);
+      fallback(comment.id);
+    } else {
+      // 成功取得 AI 回复，写入数据库
+      const { error: updErr } = await client.from('comments')
+        .update({ ai_reply: data.reply, replied_at: new Date().toISOString() })
+        .eq('id', comment.id);
+      if (updErr) { console.error('写入 AI 回复失败:', updErr); fallback(comment.id); }
+    }
   } catch(e) {
-    console.log('Edge Function call failed, using fallback:', e);
+    console.log('Edge Function 调用失败，使用 fallback:', e);
     fallback(comment.id);
   }
 }
@@ -809,7 +818,6 @@ const FALLBACKS = [
 
 async function fallback(id) {
   const reply = FALLBACKS[Math.floor(Math.random()*FALLBACKS.length)];
-  await new Promise(r => setTimeout(r, 2500 + Math.random()*2000));
   try {
     await client.from('comments').update({ ai_reply: reply, replied_at: new Date().toISOString() }).eq('id', id);
   } catch(e) { console.error('Fallback write error:', e); }
