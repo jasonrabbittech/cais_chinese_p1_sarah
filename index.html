@@ -14,7 +14,7 @@
       color: #333;
       line-height: 1.6;
     }
-    
+
     .container {
       max-width: 500px;
       margin: 0 auto;
@@ -22,68 +22,124 @@
       min-height: 100vh;
       box-shadow: 0 0 20px rgba(0,0,0,0.1);
     }
-    
-    /* 頂部標題 */
+
+    /* ===== 頂部導航 ===== */
     .header {
-      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-      color: white;
-      padding: 15px 20px;
+      background: #ededed;
+      padding: 12px 16px;
       display: flex;
       align-items: center;
-      justify-content: space-between;
+      justify-content: center;
       position: sticky;
       top: 0;
       z-index: 100;
+      border-bottom: 1px solid #d9d9d9;
     }
     
     .header h1 {
-      font-size: 18px;
-      font-weight: 600;
+      font-size: 17px;
+      font-weight: 500;
+      color: #000;
     }
-    
+
     .header-btn {
-      background: rgba(255,255,255,0.2);
+      position: absolute;
+      right: 14px;
+      background: none;
       border: none;
-      color: white;
-      padding: 6px 12px;
-      border-radius: 15px;
-      font-size: 12px;
+      color: #576b95;
+      font-size: 14px;
       cursor: pointer;
+      font-weight: 400;
     }
-    
-    /* 帖子圖片區域 */
+
+    /* ===== 帖子圖片區域（朋友圈主圖） ===== */
     .post-image-area {
       width: 100%;
-      height: 250px;
+      height: 280px;
       background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
       position: relative;
       overflow: hidden;
     }
     
-    .post-image-area::before {
-      content: '';
-      position: absolute;
-      width: 200px;
-      height: 200px;
-      background: radial-gradient(circle, rgba(255,255,200,0.3) 0%, transparent 70%);
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      border-radius: 50%;
-    }
-    
+    /* 月亮 */
     .moon {
       position: absolute;
-      width: 80px;
-      height: 80px;
-      background: radial-gradient(circle, #fff9c4 0%, #ffd54f 100%);
+      width: 90px;
+      height: 90px;
+      background: radial-gradient(circle, #fffde7 0%, #ffd54f 50%, #ff8f00 100%);
       border-radius: 50%;
-      top: 40px;
-      right: 60px;
-      box-shadow: 0 0 40px rgba(255,215,0,0.6);
+      top: 35px;
+      right: 55px;
+      box-shadow: 0 0 60px rgba(255,215,0,0.7), 0 0 120px rgba(255,193,7,0.3);
     }
     
-    /* 作者信息（圖片右下角） */
+    /* 月亮光暈 */
+    .moon::after {
+      content: '';
+      position: absolute;
+      width: 140%;
+      height: 140%;
+      top: -20%;
+      left: -20%;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(255,255,220,0.15) 0%, transparent 70%);
+    }
+
+    /* 山影 */
+    .mountains {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 100px;
+    }
+    
+    .mountain {
+      position: absolute;
+      bottom: 0;
+      width: 0;
+      height: 0;
+      border-style: solid;
+    }
+    
+    .m1 {
+      left: -30px;
+      border-width: 0 130px 85px 120px;
+      border-color: transparent transparent #151a2d transparent;
+    }
+    
+    .m2 {
+      left: 80px;
+      border-width: 0 150px 110px 130px;
+      border-color: transparent transparent #1a2040 transparent;
+    }
+    
+    .m3 {
+      right: -40px;
+      border-width: 0 120px 75px 100px;
+      border-color: transparent transparent #121729 transparent;
+    }
+
+    /* 星星 */
+    .stars {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+    }
+    
+    .star {
+      position: absolute;
+      width: 2px;
+      height: 2px;
+      background: white;
+      border-radius: 50%;
+      opacity: 0.6;
+    }
+
+    /* 作者信息疊加層（圖片右下角）—— 微信朋友圈標準樣式 */
     .post-author-overlay {
       position: absolute;
       bottom: 15px;
@@ -91,500 +147,491 @@
       display: flex;
       align-items: center;
       gap: 10px;
-    }
-    
-    .post-avatar-small {
-      width: 50px;
-      height: 50px;
-      border-radius: 8px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 28px;
-      border: 2px solid white;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+      z-index: 10;
     }
     
     .post-author-name-overlay {
       color: white;
       font-size: 16px;
       font-weight: 600;
-      text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+      text-shadow: 0 1px 4px rgba(0,0,0,0.7);
+      letter-spacing: 1px;
     }
     
-    /* 帖子內容 */
-    .post-content-area {
-      padding: 15px 20px;
+    .post-avatar-overlay {
+      width: 44px;
+      height: 44px;
+      border-radius: 6px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      color: white;
+      border: 2px solid rgba(255,255,255,0.9);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+      overflow: hidden;
+    }
+
+    /* ===== 帖子內容區域 ===== */
+    .post-body {
+      padding: 14px 16px;
     }
     
-    .post-meta {
-      font-size: 12px;
-      color: #999;
+    .post-user-row {
+      display: flex;
+      align-items: center;
       margin-bottom: 10px;
+    }
+    
+    .post-user-avatar {
+      width: 42px;
+      height: 42px;
+      border-radius: 6px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      color: white;
+      flex-shrink: 0;
+      margin-right: 10px;
+    }
+    
+    .post-user-name {
+      font-size: 16px;
+      font-weight: 600;
+      color: #576b95;
     }
     
     .post-text {
       font-size: 15px;
-      line-height: 1.8;
+      line-height: 1.7;
       color: #333;
-      margin-bottom: 15px;
-    }
-    
-    .post-text p {
-      margin-bottom: 8px;
+      margin-bottom: 10px;
+      word-break: break-all;
     }
     
     .post-tags {
       display: flex;
       flex-wrap: wrap;
-      gap: 8px;
-      margin-bottom: 15px;
+      gap: 6px;
+      margin-top: 10px;
     }
     
     .post-tag {
       background: #f0f0f0;
       color: #576b95;
-      padding: 4px 10px;
-      border-radius: 12px;
-      font-size: 13px;
+      padding: 3px 8px;
+      border-radius: 10px;
+      font-size: 12px;
     }
-    
-    /* 帖子操作欄 */
-    .post-actions {
-      position: relative;
-      padding: 12px 20px;
-      border-top: 1px solid #f0f0f0;
+
+    /* ===== 操作欄（微信風格） ===== */
+    .post-actions-row {
       display: flex;
       justify-content: space-between;
       align-items: center;
+      padding: 10px 16px 12px;
+      position: relative;
+      border-bottom: 1px solid #f0f0f0;
     }
     
-    .post-action-left {
+    .post-time {
+      font-size: 13px;
+      color: #999;
+    }
+    
+    .action-buttons {
       display: flex;
-      gap: 20px;
+      gap: 18px;
     }
     
-    .post-action-btn {
+    .action-btn {
+      background: none;
+      border: none;
+      font-size: 13px;
+      color: #999;
+      cursor: pointer;
+      padding: 4px 8px;
       display: flex;
       align-items: center;
-      gap: 5px;
-      background: none;
-      border: none;
-      color: #666;
-      font-size: 14px;
-      cursor: pointer;
-      padding: 5px;
+      gap: 4px;
+      transition: color 0.15s;
     }
     
-    .post-action-btn.liked {
-      color: #ff4444;
-    }
+    .action-btn:active { opacity: 0.5; }
+    .action-btn.liked { color: #fa5151; }
+    .action-btn svg { width: 18px; height: 18px; fill: currentColor; }
     
-    .more-btn {
+    .more-dots {
       background: none;
       border: none;
-      font-size: 20px;
-      cursor: pointer;
-      padding: 5px 10px;
+      font-size: 22px;
       color: #999;
-      letter-spacing: 3px;
+      cursor: pointer;
+      padding: 4px 8px;
+      letter-spacing: 2px;
+      line-height: 1;
     }
     
-    /* 更多菜單 */
-    .more-menu {
+    /* 更多菜單彈出 */
+    .more-popup {
       position: absolute;
-      bottom: 50px;
-      right: 20px;
-      background: white;
-      border-radius: 12px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-      padding: 8px 0;
-      min-width: 140px;
+      bottom: 48px;
+      right: 16px;
+      background: #4c4c4c;
+      border-radius: 8px;
+      padding: 6px 0;
+      min-width: 130px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.25);
       display: none;
       z-index: 50;
     }
     
-    .more-menu.show {
-      display: block;
-      animation: fadeIn 0.2s ease;
+    .more-popup.show { display: block; animation: popIn 0.15s ease; }
+    
+    @keyframes popIn {
+      from { opacity: 0; transform: scale(0.92); }
+      to { opacity: 1; transform: scale(1); }
     }
     
-    .more-menu-item {
-      display: flex;
-      align-items: center;
-      gap: 10px;
+    .popup-item {
+      display: block;
+      width: 100%;
       padding: 10px 18px;
       background: none;
       border: none;
-      width: 100%;
-      text-align: left;
+      color: white;
       font-size: 14px;
-      color: #333;
+      text-align: left;
       cursor: pointer;
     }
     
-    .more-menu-item:active {
+    .popup-item:active { background: #666; }
+
+    /* ===== 留言區 ===== */
+    .comments-section {
+      padding: 8px 16px 100px;
       background: #f5f5f5;
     }
     
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(10px); }
+    .comments-title {
+      font-size: 14px;
+      color: #999;
+      padding: 10px 0 8px;
+    }
+
+    .comment-card {
+      background: #fff;
+      border-radius: 4px;
+      padding: 12px 14px;
+      margin-bottom: 6px;
+      animation: fadeUp 0.25s ease;
+    }
+    
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(8px); }
       to { opacity: 1; transform: translateY(0); }
     }
     
-    /* 留言區 */
-    .comments-section {
-      padding: 0 20px 100px 20px;
-    }
-    
-    .comments-header {
-      padding: 15px 0;
-      font-size: 15px;
-      font-weight: 600;
-      color: #333;
-      border-bottom: 1px solid #f0f0f0;
-    }
-    
-    .comment-item {
-      padding: 15px 0;
-      border-bottom: 1px solid #f0f0f0;
-      animation: fadeIn 0.3s ease;
-    }
-    
-    .comment-header {
+    .comment-row {
       display: flex;
-      align-items: center;
-      margin-bottom: 8px;
+      align-items: flex-start;
     }
     
-    .comment-avatar {
-      width: 36px;
-      height: 36px;
-      border-radius: 50%;
+    .c-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 4px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 16px;
-      margin-right: 10px;
+      font-size: 14px;
+      color: white;
       flex-shrink: 0;
+      margin-right: 10px;
     }
     
-    .comment-avatar.student {
-      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-      color: white;
-    }
+    .c-avatar.student { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+    .c-avatar.sushi { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
     
-    .comment-avatar.sushi {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-    }
+    .c-body { flex: 1; min-width: 0; }
     
-    .comment-meta {
-      flex: 1;
-    }
-    
-    .comment-name {
-      font-size: 14px;
-      font-weight: 500;
+    .c-name {
+      font-size: 13px;
       color: #576b95;
+      margin-bottom: 2px;
     }
     
-    .comment-time {
-      font-size: 11px;
-      color: #999;
-    }
-    
-    .comment-badge {
-      background: #667eea;
-      color: white;
-      font-size: 10px;
-      padding: 2px 6px;
-      border-radius: 8px;
-      margin-left: 6px;
-    }
-    
-    .comment-content {
+    .c-text {
       font-size: 14px;
-      line-height: 1.6;
       color: #333;
-      margin-left: 46px;
+      line-height: 1.5;
+      word-break: break-word;
     }
     
-    .comment-ai-reply {
+    .ai-reply-box {
       margin-top: 10px;
-      margin-left: 46px;
-      padding: 10px;
-      background: #f8f9ff;
-      border-radius: 8px;
+      padding: 10px 12px;
+      background: linear-gradient(135deg, #f8f9ff 0%, #f0eeff 100%);
+      border-radius: 6px;
       border-left: 3px solid #667eea;
     }
     
-    .comment-ai-reply .comment-content {
-      margin-left: 0;
+    .ai-badge {
+      display: inline-block;
+      background: #667eea;
+      color: white;
+      font-size: 10px;
+      padding: 1px 6px;
+      border-radius: 6px;
+      margin-left: 4px;
+      vertical-align: middle;
     }
-    
-    /* 留言輸入區 */
-    .comment-input-area {
+
+    /* ===== 底部輸入欄 ===== */
+    .input-bar {
       position: fixed;
       bottom: 0;
       left: 50%;
       transform: translateX(-50%);
       width: 100%;
       max-width: 500px;
-      background: white;
-      border-top: 1px solid #e0e0e0;
-      padding: 12px 20px;
+      background: #ededed;
+      border-top: 1px solid #d9d9d9;
+      padding: 10px 14px;
       display: flex;
-      gap: 10px;
+      gap: 8px;
       align-items: center;
       z-index: 100;
     }
     
-    .comment-input {
+    .input-bar input {
       flex: 1;
-      border: 1px solid #e0e0e0;
-      border-radius: 20px;
-      padding: 10px 15px;
+      background: white;
+      border: none;
+      border-radius: 18px;
+      padding: 9px 14px;
       font-size: 14px;
       outline: none;
       font-family: inherit;
     }
     
-    .comment-input:focus {
-      border-color: #667eea;
-    }
-    
-    .comment-submit {
-      background: #667eea;
+    .input-bar button {
+      background: #07c160;
       color: white;
       border: none;
-      padding: 10px 20px;
-      border-radius: 20px;
+      padding: 8px 18px;
+      border-radius: 18px;
       font-size: 14px;
       cursor: pointer;
       white-space: nowrap;
     }
     
-    .comment-submit:disabled {
-      background: #ccc;
-      cursor: not-allowed;
-    }
-    
-    /* 姓名輸入 Modal */
-    .modal-overlay {
+    .input-bar button:disabled { background: #ccc; cursor: not-allowed; }
+
+    /* ===== Modal ===== */
+    .modal-mask {
       position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(0,0,0,0.6);
+      inset: 0;
+      background: rgba(0,0,0,0.55);
       display: flex;
       align-items: center;
       justify-content: center;
-      z-index: 1000;
+      z-index: 2000;
     }
     
-    .modal {
+    .modal-card {
       background: white;
-      border-radius: 16px;
-      padding: 30px;
-      width: 90%;
-      max-width: 350px;
+      border-radius: 14px;
+      padding: 28px 24px;
+      width: 88%;
+      max-width: 320px;
       text-align: center;
     }
     
-    .modal h2 {
-      font-size: 20px;
-      margin-bottom: 10px;
+    .modal-card h2 {
+      font-size: 19px;
       color: #333;
+      margin-bottom: 8px;
     }
     
-    .modal p {
-      font-size: 14px;
-      color: #666;
-      margin-bottom: 20px;
+    .modal-card p {
+      font-size: 13px;
+      color: #888;
+      margin-bottom: 18px;
     }
     
-    .modal input {
+    .modal-card input {
       width: 100%;
-      padding: 12px 15px;
-      border: 1px solid #e0e0e0;
+      padding: 11px 14px;
+      border: 1px solid #ddd;
       border-radius: 10px;
       font-size: 15px;
       outline: none;
+      margin-bottom: 16px;
       font-family: inherit;
-      margin-bottom: 15px;
     }
     
-    .modal input:focus {
-      border-color: #667eea;
-    }
+    .modal-card input:focus { border-color: #576b95; }
     
-    .modal-btn {
+    .modal-card button {
       width: 100%;
-      padding: 12px;
-      background: #667eea;
+      padding: 11px;
+      background: #07c160;
       color: white;
       border: none;
       border-radius: 10px;
-      font-size: 15px;
+      font-size: 16px;
       cursor: pointer;
       font-family: inherit;
     }
-    
-    /* 教師後台 Modal */
-    .teacher-modal {
+
+    /* ===== 教師後台 ===== */
+    .t-modal {
       position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(0,0,0,0.6);
+      inset: 0;
+      background: rgba(0,0,0,0.55);
       display: none;
       align-items: center;
       justify-content: center;
-      z-index: 1000;
+      z-index: 2000;
     }
+    .t-modal.show { display: flex; }
     
-    .teacher-modal.show {
-      display: flex;
-    }
-    
-    .teacher-panel {
+    .t-panel {
       background: white;
-      border-radius: 16px;
-      padding: 30px;
-      width: 95%;
-      max-width: 500px;
-      max-height: 80vh;
+      border-radius: 14px;
+      padding: 24px;
+      width: 94%;
+      max-width: 480px;
+      max-height: 82vh;
       overflow-y: auto;
     }
     
-    .teacher-panel h2 {
-      font-size: 20px;
-      margin-bottom: 20px;
-      color: #333;
+    .t-panel h2 {
+      font-size: 18px;
+      margin-bottom: 16px;
     }
     
-    .teacher-tabs {
+    .t-tabs {
       display: flex;
-      gap: 10px;
-      margin-bottom: 20px;
-      border-bottom: 2px solid #f0f0f0;
+      gap: 8px;
+      margin-bottom: 16px;
+      border-bottom: 1px solid #eee;
     }
     
-    .teacher-tab {
-      padding: 10px 15px;
+    .t-tab {
+      padding: 8px 14px;
       background: none;
       border: none;
-      font-size: 14px;
-      cursor: pointer;
+      font-size: 13px;
       color: #999;
+      cursor: pointer;
       border-bottom: 2px solid transparent;
-      margin-bottom: -2px;
+      margin-bottom: -1px;
     }
     
-    .teacher-tab.active {
-      color: #667eea;
-      border-bottom-color: #667eea;
-    }
+    .t-tab.active { color: #576b95; border-bottom-color: #576b95; }
     
-    .teacher-content {
-      font-size: 14px;
-    }
-    
-    .teacher-btn {
-      padding: 8px 15px;
-      background: #667eea;
+    .t-btn {
+      padding: 6px 12px;
+      background: #576b95;
       color: white;
       border: none;
-      border-radius: 8px;
-      font-size: 13px;
+      border-radius: 6px;
+      font-size: 12px;
       cursor: pointer;
-      margin: 5px;
+      margin: 4px;
       font-family: inherit;
     }
+    .t-btn.danger { background: #fa5151; }
     
-    .teacher-btn.danger {
-      background: #f5576c;
-    }
-    
-    .close-btn {
+    .t-close {
       float: right;
       background: none;
       border: none;
-      font-size: 24px;
+      font-size: 22px;
+      color: #bbb;
       cursor: pointer;
-      color: #999;
     }
-    
-    /* 空白狀態 */
-    .empty-state {
+
+    .empty-hint {
       text-align: center;
-      padding: 40px 20px;
-      color: #999;
+      padding: 36px 16px;
+      color: #bbb;
+      font-size: 14px;
     }
-    
-    .empty-state-icon {
-      font-size: 48px;
-      margin-bottom: 15px;
-    }
+    .empty-hint .emoji { font-size: 40px; margin-bottom: 10px; display: block; }
   </style>
 </head>
 <body>
-  <!-- 姓名輸入 Modal -->
-  <div class="modal-overlay" id="nameModal">
-    <div class="modal">
+
+  <!-- 姓名 Modal -->
+  <div class="modal-mask" id="nameModal">
+    <div class="modal-card">
       <h2>👋 歡迎來到蘇軾的朋友圈</h2>
       <p>請輸入你的姓名，讓蘇軾知道你是誰</p>
       <input type="text" id="nameInput" placeholder="例如：張小明" maxlength="20">
-      <button class="modal-btn" onclick="submitName()">進入朋友圈</button>
+      <button onclick="submitName()">進入朋友圈</button>
     </div>
   </div>
-  
-  <!-- 教師後台 Modal -->
-  <div class="teacher-modal" id="teacherModal">
-    <div class="teacher-panel">
-      <button class="close-btn" onclick="closeTeacherPanel()">×</button>
+
+  <!-- 教師後台 -->
+  <div class="t-modal" id="teacherModal">
+    <div class="t-panel">
+      <button class="t-close" onclick="closeTeacher()">×</button>
       <h2>🔐 教師後台</h2>
-      
-      <div class="teacher-tabs">
-        <button class="teacher-tab active" onclick="switchTab('comments', this)">所有留言</button>
-        <button class="teacher-tab" onclick="switchTab('stats', this)">留言統計</button>
+      <div class="t-tabs">
+        <button class="t-tab active" onclick="switchTab('comments',this)">所有留言</button>
+        <button class="t-tab" onclick="switchTab('stats',this)">統計</button>
       </div>
-      
-      <div class="teacher-content" id="teacherContent">
-        <!-- 動態內容 -->
-      </div>
+      <div id="teacherContent"></div>
     </div>
   </div>
-  
+
   <!-- 主容器 -->
   <div class="container">
-    <!-- 頂部 -->
+
+    <!-- 頂部導航 -->
     <div class="header">
-      <h1>📱 朋友圈</h1>
-      <button class="header-btn" onclick="openTeacherPanel()">教師後台</button>
+      <h1>朋友圈</h1>
+      <button class="header-btn" onclick="openTeacher()">教師後台</button>
     </div>
-    
+
     <!-- 蘇軾帖子 -->
     <div class="post">
-      <!-- 圖片區域（上方1/3） -->
+      
+      <!-- 圖片區域 -->
       <div class="post-image-area">
+        <!-- 星星 -->
+        <div class="stars" id="starField"></div>
+        <!-- 月亮 -->
         <div class="moon"></div>
+        <!-- 山影 -->
+        <div class="mountains">
+          <div class="mountain m1"></div>
+          <div class="mountain m2"></div>
+          <div class="mountain m3"></div>
+        </div>
         
-        <!-- 作者信息（右下角） -->
+        <!-- 右下角作者信息（微信朋友圈標準樣式） -->
         <div class="post-author-overlay">
-          <div class="post-author-name-overlay">蘇軾</div>
-          <div class="post-avatar-small">軾</div>
+          <span class="post-author-name-overlay">蘇軾</span>
+          <div class="post-avatar-overlay">軾</div>
         </div>
       </div>
       
       <!-- 帖子內容 -->
-      <div class="post-content-area">
-        <div class="post-meta">密州·超然台 · 3分鐘前</div>
+      <div class="post-body">
+        <!-- 用戶頭像+名字 -->
+        <div class="post-user-row">
+          <div class="post-user-avatar">軾</div>
+          <div class="post-user-name">蘇軾</div>
+        </div>
         
+        <!-- 文字內容 -->
         <div class="post-text">
           <p>丙辰中秋，歡飲達旦，大醉...</p>
           <p>月亮真圓啊🌕 想起在齊州的子由（蘇轍），七年未見，甚是想念。</p>
@@ -601,591 +648,322 @@
       </div>
       
       <!-- 操作欄 -->
-      <div class="post-actions">
-        <div class="post-action-left">
-          <button class="post-action-btn" id="likeBtn" onclick="toggleLike()">
-            <span id="likeIcon">🤍</span>
-            <span id="likeCount">128</span>
+      <div class="post-actions-row">
+        <span class="post-time" id="postTime">剛剛</span>
+        <div class="action-buttons">
+          <button class="action-btn" id="likeBtn" onclick="toggleLike()">
+            <svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+            <span id="likeLabel">Like</span>
           </button>
-          <button class="post-action-btn" onclick="scrollToInput()">
-            💬 <span id="commentCount">0</span>
+          <button class="action-btn" onclick="focusInput()">
+            💬 <span id="actionCommentCount">0</span>
           </button>
+          <button class="more-dots" onclick="togglePopup()">⋮</button>
         </div>
         
-        <button class="more-btn" onclick="toggleMoreMenu()">⋮</button>
-        
-        <!-- 更多菜單 -->
-        <div class="more-menu" id="moreMenu">
-          <button class="more-menu-item" onclick="toggleLike()">👍 讚</button>
-          <button class="more-menu-item" onclick="scrollToInput()">💬 留言</button>
+        <!-- 彈出菜單 -->
+        <div class="more-popup" id="morePopup">
+          <button class="popup-item" onclick="toggleLike(); closePopup()">👍 讚</button>
+          <button class="popup-item" onclick="focusInput(); closePopup()">💬 留言</button>
         </div>
       </div>
     </div>
     
     <!-- 留言區 -->
     <div class="comments-section">
-      <div class="comments-header">
-        💬 留言（<span id="commentCountText">0</span>）
-      </div>
-      
+      <div class="comments-title">留言 (<span id="commentCountText">0</span>)</div>
       <div id="commentsList">
-        <div class="empty-state">
-          <div class="empty-state-icon">💬</div>
+        <div class="empty-hint">
+          <span class="emoji">💬</span>
           <p>還沒有留言，來搶沙發吧！</p>
         </div>
       </div>
     </div>
   </div>
-  
-  <!-- 留言輸入區 -->
-  <div class="comment-input-area">
-    <input 
-      type="text" 
-      class="comment-input" 
-      id="commentInput" 
-      placeholder="說點什麼..."
-      maxlength="200"
-      onkeypress="if(event.key==='Enter') submitComment()"
-    >
-    <button class="comment-submit" id="submitBtn" onclick="submitComment()">發送</button>
+
+  <!-- 底部輸入欄 -->
+  <div class="input-bar">
+    <input type="text" id="commentInput" placeholder="說點什麼..." maxlength="200" onkeypress="if(event.key==='Enter') submitComment()">
+    <button id="submitBtn" onclick="submitComment()">發送</button>
   </div>
+
+<script>
+// ========== Supabase 設定 ==========
+const SUPABASE_URL = 'https://pzatgmavjvrastnumxty.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_j4SGtTlrZz1_B163jw-a7A_IRNSUo7s';
+const { createClient } = supabase;
+const client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// ========== 全局狀態 ==========
+let currentUserName = '';
+let isLiked = false;
+let likeCount = 128;
+const TEACHER_PASSWORD = 'cais2024';
+
+// ========== 生成星星背景 ==========
+(function genStars() {
+  const field = document.getElementById('starField');
+  if (!field) return;
+  for (let i = 0; i < 30; i++) {
+    const s = document.createElement('div');
+    s.className = 'star';
+    s.style.left = Math.random() * 100 + '%';
+    s.style.top = Math.random() * 65 + '%';
+    s.style.width = s.style.height = (Math.random() * 2 + 1) + 'px';
+    s.style.opacity = Math.random() * 0.5 + 0.3;
+    field.appendChild(s);
+  }
+})();
+
+// ========== 初始化 ==========
+window.addEventListener('DOMContentLoaded', async () => {
+  const savedName = localStorage.getItem('su_shi_name');
+  if (savedName) {
+    currentUserName = savedName;
+    document.getElementById('nameModal').style.display = 'none';
+    await loadComments();
+    subscribeRT();
+  }
+  loadLikeState();
+});
+
+// ========== 點讚 ==========
+function loadLikeState() {
+  if (localStorage.getItem('su_shi_like') === 'true') {
+    isLiked = true;
+    const btn = document.getElementById('likeBtn');
+    btn.classList.add('liked');
+    document.getElementById('likeLabel').textContent = likeCount;
+  } else {
+    document.getElementById('likeLabel').textContent = likeCount;
+  }
+}
+
+function toggleLike() {
+  isLiked = !isLiked;
+  const btn = document.getElementById('likeBtn');
+  if (isLiked) {
+    likeCount++;
+    btn.classList.add('liked');
+    document.getElementById('likeLabel').textContent = likeCount;
+    localStorage.setItem('su_shi_like', 'true');
+  } else {
+    likeCount--;
+    btn.classList.remove('liked');
+    document.getElementById('likeLabel').textContent = likeCount;
+    localStorage.setItem('su_shi_like', 'false');
+  }
+  closePopup();
+}
+
+// ========== 更多菜單 ==========
+function togglePopup() {
+  document.getElementById('morePopup').classList.toggle('show');
+}
+function closePopup() {
+  document.getElementById('morePopup').classList.remove('show');
+}
+document.addEventListener('click', e => {
+  if (!e.target.closest('.more-popup') && !e.target.closest('.more-dots')) closePopup();
+});
+
+// ========== 姓名 ==========
+function submitName() {
+  const n = document.getElementById('nameInput').value.trim();
+  if (!n) { alert('請輸入姓名'); return; }
+  currentUserName = n;
+  localStorage.setItem('su_shi_name', n);
+  document.getElementById('nameModal').style.display = 'none';
+  loadComments();
+  subscribeRT();
+}
+
+// ========== 載入 & 渲染留言 ==========
+async function loadComments() {
+  try {
+    const { data, error } = await client.from('comments').select('*').order('created_at', { ascending: true });
+    if (!error) renderComments(data);
+  } catch(e) { console.error(e); }
+}
+
+function renderComments(comments) {
+  const el = document.getElementById('commentsList');
+  const countEls = ['#commentCountText', '#actionCommentCount'];
   
-  <script>
-    // ============================================================
-    // Supabase 設定
-    // ============================================================
-    const SUPABASE_URL = 'https://pzatgmavjvrastnumxty.supabase.co';
-    const SUPABASE_ANON_KEY = 'sb_publishable_j4SGtTlrZz1_B163jw-a7A_IRNSUo7s';
-    
-    const { createClient } = supabase;
-    const client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    
-    // 教師後台密碼
-    const TEACHER_PASSWORD = 'cais2024';
-    
-    // 當前使用者姓名
-    let currentUserName = '';
-    
-    // 點讚狀態
-    let isLiked = false;
-    let likeCount = 128;
-    
-    // ============================================================
-    // 初始化
-    // ============================================================
-    window.addEventListener('DOMContentLoaded', async () => {
-      console.log('頁面載入完成');
-      
-      // 檢查是否已輸入姓名
-      const savedName = localStorage.getItem('su_shi_name');
-      if (savedName) {
-        currentUserName = savedName;
-        document.getElementById('nameModal').style.display = 'none';
-        await loadComments();
-        subscribeToChanges();
-      }
-      
-      // 載入點讚狀態
-      loadLikeState();
-    });
-    
-    // ============================================================
-    // 姓名輸入
-    // ============================================================
-    function submitName() {
-      const name = document.getElementById('nameInput').value.trim();
-      if (!name) {
-        alert('請輸入你的姓名');
-        return;
-      }
-      
-      currentUserName = name;
-      localStorage.setItem('su_shi_name', name);
-      document.getElementById('nameModal').style.display = 'none';
-      
-      loadComments();
-      subscribeToChanges();
-    }
-    
-    // ============================================================
-    // 點讚功能
-    // ============================================================
-    function loadLikeState() {
-      const liked = localStorage.getItem('su_shi_like');
-      if (liked === 'true') {
-        isLiked = true;
-        document.getElementById('likeIcon').textContent = '❤️';
-        document.getElementById('likeBtn').classList.add('liked');
-      }
-    }
-    
-    function toggleLike() {
-      isLiked = !isLiked;
-      
-      if (isLiked) {
-        likeCount++;
-        document.getElementById('likeIcon').textContent = '❤️';
-        document.getElementById('likeBtn').classList.add('liked');
-        localStorage.setItem('su_shi_like', 'true');
-      } else {
-        likeCount--;
-        document.getElementById('likeIcon').textContent = '🤍';
-        document.getElementById('likeBtn').classList.remove('liked');
-        localStorage.setItem('su_shi_like', 'false');
-      }
-      
-      document.getElementById('likeCount').textContent = likeCount;
-      
-      // 關閉更多菜單
-      document.getElementById('moreMenu').classList.remove('show');
-    }
-    
-    // ============================================================
-    // 更多菜單
-    // ============================================================
-    function toggleMoreMenu() {
-      const menu = document.getElementById('moreMenu');
-      menu.classList.toggle('show');
-    }
-    
-    // 點擊其他地方關閉菜單
-    document.addEventListener('click', (e) => {
-      const menu = document.getElementById('moreMenu');
-      const btn = document.querySelector('.more-btn');
-      
-      if (!menu.contains(e.target) && !btn.contains(e.target)) {
-        menu.classList.remove('show');
-      }
-    });
-    
-    // ============================================================
-    // 載入留言
-    // ============================================================
-    async function loadComments() {
-      try {
-        const { data, error } = await client
-          .from('comments')
-          .select('*')
-          .order('created_at', { ascending: true });
-        
-        if (error) {
-          console.error('載入留言失敗：', error);
-          return;
-        }
-        
-        renderComments(data);
-      } catch (err) {
-        console.error('載入留言錯誤：', err);
-      }
-    }
-    
-    // ============================================================
-    // 渲染留言
-    // ============================================================
-    function renderComments(comments) {
-      const container = document.getElementById('commentsList');
-      const countEls = document.querySelectorAll('#commentCount, #commentCountText');
-      
-      if (!comments || comments.length === 0) {
-        container.innerHTML = `
-          <div class="empty-state">
-            <div class="empty-state-icon">💬</div>
-            <p>還沒有留言，來搶沙發吧！</p>
+  if (!comments || comments.length === 0) {
+    el.innerHTML = '<div class="empty-hint"><span class="emoji">💬</span><p>還沒有留言，來搶沙發吧！</p></div>';
+    countEls.forEach(s => { const e = document.querySelector(s); if(e)e.textContent='0'; });
+    return;
+  }
+  
+  countEls.forEach(s => { const e = document.querySelector(s); if(e)e.textContent=comments.length; });
+
+  el.innerHTML = comments.map(c => `
+    <div class="comment-card" id="comment-${c.id}">
+      <div class="comment-row">
+        <div class="c-avatar student">${esc(c.student_name)[0]}</div>
+        <div class="c-body">
+          <div class="c-name">${esc(c.student_name)}</div>
+          <div class="c-text">${esc(c.content)}</div>
+        </div>
+      </div>
+      ${c.ai_reply ? `
+      <div class="ai-reply-box">
+        <div class="comment-row">
+          <div class="c-avatar sushi">軾</div>
+          <div class="c-body">
+            <div class="c-name">蘇軾<span class="ai-badge">AI</span></div>
+            <div class="c-text">${esc(c.ai_reply).replace(/\n/g,'<br>')}</div>
           </div>
-        `;
-        countEls.forEach(el => el.textContent = '0');
-        return;
-      }
-      
-      countEls.forEach(el => el.textContent = comments.length);
-      
-      container.innerHTML = comments.map(comment => {
-        const timeStr = formatTime(comment.created_at);
-        const isAIReply = comment.ai_reply !== null && comment.ai_reply !== undefined;
-        
-        return `
-          <div class="comment-item" id="comment-${comment.id}">
-            <div class="comment-header">
-              <div class="comment-avatar student">${comment.student_name[0]}</div>
-              <div class="comment-meta">
-                <div class="comment-name">${escapeHtml(comment.student_name)}</div>
-                <div class="comment-time">${timeStr}</div>
-              </div>
-            </div>
-            <div class="comment-content">${escapeHtml(comment.content)}</div>
-            
-            ${isAIReply ? `
-              <div class="comment-ai-reply">
-                <div class="comment-header">
-                  <div class="comment-avatar sushi">軾</div>
-                  <div class="comment-meta">
-                    <div class="comment-name">蘇軾 <span class="comment-badge">🤖</span></div>
-                    <div class="comment-time">${formatTime(comment.replied_at)}</div>
-                  </div>
-                </div>
-                <div class="comment-content">${formatAIReply(comment.ai_reply)}</div>
-              </div>
-            ` : ''}
+        </div>
+      </div>` : ''}
+    </div>
+  `).join('');
+}
+
+// ========== Realtime ==========
+function subscribeRT() {
+  client.channel('comments-channel')
+    .on('postgres_changes', { event:'INSERT', schema:'public', table:'comments' }, () => loadComments())
+    .on('postgres_changes', { event:'UPDATE', schema:'public', table:'comments' }, () => loadComments())
+    .subscribe();
+}
+
+// ========== 提交留言 ==========
+async function submitComment() {
+  const input = document.getElementById('commentInput');
+  const content = input.value.trim();
+  if (!content) return;
+  if (!currentUserName) { alert('請先輸入姓名'); return; }
+  
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true; btn.textContent = '發送中...';
+
+  try {
+    const { data, error } = await client.from('comments')
+      .insert([{ student_name: currentUserName, content }])
+      .select();
+
+    if (error) { alert('發送失敗'); btn.disabled=false; btn.textContent='發送'; return; }
+
+    input.value = '';
+    btn.disabled = false; btn.textContent = '發送';
+
+    if (data && data[0]) triggerAI(data[0]);
+  } catch(e) {
+    console.error(e); alert('發送失敗'); btn.disabled=false; btn.textContent='發送';
+  }
+}
+
+// ========== AI 回覆 ==========
+async function triggerAI(comment) {
+  try {
+    const { error } = await client.functions.invoke('su-shi-reply', { body: { record: comment } });
+    if (error) { console.log('Edge Function error, using fallback'); fallback(comment.id); }
+  } catch(e) {
+    console.log('Edge Function call failed, using fallback:', e);
+    fallback(comment.id);
+  }
+}
+
+const FALLBACKS = [
+  '諸位安好。月色甚美，諸位可願與吾共賞？🌙',
+  '哈哈，甚好甚好！諸位以為如何？',
+  '月圓之夜，思念故人。諸位可有何感觸？',
+  '人生如月，有圓有缺。諸位且珍惜當下。',
+  '美酒配明月，人生一大樂事也！🍶',
+  '子由若在，定當共飲。諸位有兄弟姊妹否？',
+  '但願人長久，千里共嬋娟。諸位以為此句何解？',
+  '密州雖好，終非故鄉。諸位可有思鄉之時？'
+];
+
+async function fallback(id) {
+  const reply = FALLBACKS[Math.floor(Math.random()*FALLBACKS.length)];
+  await new Promise(r => setTimeout(r, 2500 + Math.random()*2000));
+  try {
+    await client.from('comments').update({ ai_reply: reply, replied_at: new Date().toISOString() }).eq('id', id);
+  } catch(e) { console.error('Fallback write error:', e); }
+}
+
+// ========== 教師後台 ==========
+function openTeacher() {
+  const pw = prompt('請輸入教師密碼：');
+  if (pw !== TEACHER_PASSWORD) { if(pw!==null) alert('密碼錯誤'); return; }
+  document.getElementById('teacherModal').classList.add('show');
+  loadTComments();
+}
+function closeTeacher() { document.getElementById('teacherModal').classList.remove('show'); }
+
+function switchTab(tab, btn) {
+  document.querySelectorAll('.t-tab').forEach(t=>t.classList.remove('active'));
+  btn.classList.add('active');
+  tab==='comments' ? loadTComments() : loadTStats();
+}
+
+async function loadTComments() {
+  const c = document.getElementById('teacherContent');
+  c.innerHTML = '<p style="color:#999;">載入中...</p>';
+  try {
+    const { data, err } = await client.from('comments').select('*').order('created_at',{ascending:false});
+    if (err || !data||!data.length) { c.innerHTML='<p style="color:#999;">還沒有留言</p>'; return; }
+    c.innerHTML = `
+      <div style="margin-bottom:12px;">
+        <button class="t-btn" onclick="exportCSV()">📥 匯出 CSV</button>
+        <button class="t-btn danger" onclick="deleteAll()">🗑️ 刪除全部</button>
+      </div>
+      <div style="max-height:50vh;overflow-y:auto;">
+        ${data.map(d=>`
+          <div style="padding:10px;border-bottom:1px solid #f0f0f0;">
+            <strong>${esc(d.student_name)}</strong><span style="color:#999;font-size:12px;margin-left:6px;">${fmtT(d.created_at)}</span>
+            <p style="margin:4px 0;font-size:13px;">${esc(d.content)}</p>
+            ${d.ai_reply?`<p style="color:#576b95;font-size:12px;">💬 ${esc(d.ai_reply)}</p>`:`<p style="color:#ccc;font-size:12px;">尚未回覆</p>`}
+            <button class="t-btn danger" onclick="delOne('${d.id}')">刪除</button>
           </div>
-        `;
-      }).join('');
-    }
-    
-    // ============================================================
-    // Realtime 訂閱
-    // ============================================================
-    function subscribeToChanges() {
-      client
-        .channel('comments-channel')
-        .on(
-          'postgres_changes',
-          { event: 'INSERT', schema: 'public', table: 'comments' },
-          (payload) => {
-            console.log('新留言：', payload.new);
-            loadComments();
-          }
-        )
-        .on(
-          'postgres_changes',
-          { event: 'UPDATE', schema: 'public', table: 'comments' },
-          (payload) => {
-            console.log('留言更新：', payload.new);
-            loadComments();
-          }
-        )
-        .subscribe((status) => {
-          console.log('Realtime 狀態：', status);
-        });
-    }
-    
-    // ============================================================
-    // 提交留言
-    // ============================================================
-    async function submitComment() {
-      const input = document.getElementById('commentInput');
-      const content = input.value.trim();
-      
-      if (!content) {
-        alert('請輸入留言內容');
-        return;
-      }
-      
-      if (!currentUserName) {
-        alert('請先輸入姓名');
-        return;
-      }
-      
-      const submitBtn = document.getElementById('submitBtn');
-      submitBtn.disabled = true;
-      submitBtn.textContent = '發送中...';
-      
-      try {
-        const { data, error } = await client
-          .from('comments')
-          .insert([
-            {
-              student_name: currentUserName,
-              content: content
-            }
-          ])
-          .select();
-        
-        if (error) {
-          console.error('發送失敗：', error);
-          alert('發送失敗，請重試');
-          submitBtn.disabled = false;
-          submitBtn.textContent = '發送';
-          return;
-        }
-        
-        input.value = '';
-        submitBtn.disabled = false;
-        submitBtn.textContent = '發送';
-        
-        // 觸發 AI 回覆
-        if (data && data[0]) {
-          triggerAIReply(data[0]);
-        }
-      } catch (err) {
-        console.error('發送錯誤：', err);
-        alert('發送失敗，請重試');
-        submitBtn.disabled = false;
-        submitBtn.textContent = '發送';
-      }
-    }
-    
-    // ============================================================
-    // 觸發 AI 回覆
-    // ============================================================
-    async function triggerAIReply(comment) {
-      try {
-        // 嘗試呼叫 Edge Function
-        const { data, error } = await client.functions.invoke('su-shi-reply', {
-          body: { record: comment }
-        });
-        
-        if (error) {
-          console.error('Edge Function 錯誤：', error);
-          // 使用固定回覆
-          useFallbackReply(comment.id);
-        }
-      } catch (err) {
-        console.error('呼叫 Edge Function 失敗：', err);
-        // 使用固定回覆
-        useFallbackReply(comment.id);
-      }
-    }
-    
-    // 固定回覆模板
-    const FALLBACK_REPLIES = [
-      '諸位安好。月色甚美，諸位可願與吾共賞？🌙',
-      '哈哈，甚好甚好！諸位以為如何？',
-      '月圓之夜，思念故人。諸位可有何感觸？',
-      '人生如月，有圓有缺。諸位且珍惜當下。',
-      '美酒配明月，人生一大樂事也！諸位以為然否？🍶',
-      '子由（蘇轍）若在，定當共飲。諸位有兄弟姊妹否？',
-      '但願人長久，千里共嬋娟。諸位以為這句何解？',
-      '密州雖好，終非故鄉。諸位可有思鄉之時？'
-    ];
-    
-    async function useFallbackReply(commentId) {
-      const randomReply = FALLBACK_REPLIES[Math.floor(Math.random() * FALLBACK_REPLIES.length)];
-      
-      // 延遲 2-4 秒
-      await new Promise(resolve => setTimeout(resolve, 2000 + Math.random() * 2000));
-      
-      try {
-        const { error } = await client
-          .from('comments')
-          .update({
-            ai_reply: randomReply,
-            replied_at: new Date().toISOString()
-          })
-          .eq('id', commentId);
-        
-        if (error) {
-          console.error('更新 AI 回覆失敗：', error);
-        }
-      } catch (err) {
-        console.error('更新 AI 回覆錯誤：', err);
-      }
-    }
-    
-    // ============================================================
-    // 教師後台
-    // ============================================================
-    function openTeacherPanel() {
-      const password = prompt('請輸入教師密碼：');
-      if (password !== TEACHER_PASSWORD) {
-        if (password !== null) {
-          alert('密碼錯誤');
-        }
-        return;
-      }
-      
-      document.getElementById('teacherModal').classList.add('show');
-      loadTeacherComments();
-    }
-    
-    function closeTeacherPanel() {
-      document.getElementById('teacherModal').classList.remove('show');
-    }
-    
-    function switchTab(tab, btn) {
-      document.querySelectorAll('.teacher-tab').forEach(t => t.classList.remove('active'));
-      btn.classList.add('active');
-      
-      if (tab === 'comments') {
-        loadTeacherComments();
-      } else if (tab === 'stats') {
-        loadTeacherStats();
-      }
-    }
-    
-    async function loadTeacherComments() {
-      const content = document.getElementById('teacherContent');
-      content.innerHTML = '<p>載入中...</p>';
-      
-      try {
-        const { data, error } = await client
-          .from('comments')
-          .select('*')
-          .order('created_at', { ascending: false });
-        
-        if (error) {
-          content.innerHTML = '<p>載入失敗</p>';
-          return;
-        }
-        
-        if (!data || data.length === 0) {
-          content.innerHTML = '<p>還沒有留言</p>';
-          return;
-        }
-        
-        content.innerHTML = `
-          <div style="margin-bottom: 15px;">
-            <button class="teacher-btn" onclick="exportCSV()">📥 匯出 CSV</button>
-            <button class="teacher-btn danger" onclick="deleteAllComments()">🗑️ 刪除全部</button>
-          </div>
-          <div style="max-height: 50vh; overflow-y: auto;">
-            ${data.map(c => `
-              <div style="padding: 10px; border-bottom: 1px solid #f0f0f0;">
-                <strong>${escapeHtml(c.student_name)}</strong>
-                <span style="color: #999; font-size: 12px;">${formatTime(c.created_at)}</span>
-                <p style="margin: 5px 0;">${escapeHtml(c.content)}</p>
-                ${c.ai_reply ? `<p style="color: #667eea; font-size: 13px;">💬 ${escapeHtml(c.ai_reply)}</p>` : '<p style="color: #999; font-size: 12px;">尚未回覆</p>'}
-                <button class="teacher-btn danger" onclick="deleteComment('${c.id}')">刪除</button>
-              </div>
-            `).join('')}
-          </div>
-        `;
-      } catch (err) {
-        content.innerHTML = '<p>載入錯誤</p>';
-      }
-    }
-    
-    async function loadTeacherStats() {
-      const content = document.getElementById('teacherContent');
-      content.innerHTML = '<p>載入中...</p>';
-      
-      try {
-        const { data, error } = await client
-          .from('comments')
-          .select('student_name');
-        
-        if (error) {
-          content.innerHTML = '<p>載入失敗</p>';
-          return;
-        }
-        
-        const stats = {};
-        data.forEach(c => {
-          stats[c.student_name] = (stats[c.student_name] || 0) + 1;
-        });
-        
-        const sorted = Object.entries(stats).sort((a, b) => b[1] - a[1]);
-        
-        content.innerHTML = `
-          <h3>留言統計</h3>
-          <p style="color: #999; margin-bottom: 15px;">總留言數：${data.length}</p>
-          <div>
-            ${sorted.map(([name, count], i) => `
-              <div style="display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #f0f0f0;">
-                <span>${i + 1}. ${escapeHtml(name)}</span>
-                <strong>${count} 則</strong>
-              </div>
-            `).join('')}
-          </div>
-        `;
-      } catch (err) {
-        content.innerHTML = '<p>載入錯誤</p>';
-      }
-    }
-    
-    async function deleteComment(id) {
-      if (!confirm('確定刪除？')) return;
-      
-      try {
-        const { error } = await client
-          .from('comments')
-          .delete()
-          .eq('id', id);
-        
-        if (error) {
-          alert('刪除失敗');
-          return;
-        }
-        
-        loadTeacherComments();
-      } catch (err) {
-        alert('刪除錯誤');
-      }
-    }
-    
-    async function deleteAllComments() {
-      if (!confirm('確定刪除全部？不可復原！')) return;
-      
-      try {
-        const { error } = await client
-          .from('comments')
-          .delete()
-          .neq('id', '00000000-0000-0000-0000-000000000000');
-        
-        if (error) {
-          alert('刪除失敗');
-          return;
-        }
-        
-        loadTeacherComments();
-      } catch (err) {
-        alert('刪除錯誤');
-      }
-    }
-    
-    function exportCSV() {
-      client
-        .from('comments')
-        .select('*')
-        .order('created_at', { ascending: true })
-        .then(({ data, error }) => {
-          if (error) {
-            alert('匯出失敗');
-            return;
-          }
-          
-          const csv = [
-            ['時間', '學生', '留言', '蘇軾回覆', '回覆時間'],
-            ...data.map(c => [
-              formatTime(c.created_at),
-              c.student_name,
-              c.content,
-              c.ai_reply || '',
-              c.replied_at ? formatTime(c.replied_at) : ''
-            ])
-          ].map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
-          
-          const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = `蘇軾朋友圈_${new Date().toISOString().slice(0,10)}.csv`;
-          a.click();
-          URL.revokeObjectURL(url);
-        });
-    }
-    
-    // ============================================================
-    // 工具函數
-    // ============================================================
-    function formatTime(isoString) {
-      if (!isoString) return '';
-      const date = new Date(isoString);
-      const now = new Date();
-      const diff = (now - date) / 1000;
-      
-      if (diff < 60) return '剛剛';
-      if (diff < 3600) return `${Math.floor(diff / 60)}分鐘前`;
-      if (diff < 86400) return `${Math.floor(diff / 3600)}小時前`;
-      
-      return date.toLocaleDateString('zh-Hant', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-    }
-    
-    function escapeHtml(text) {
-      const div = document.createElement('div');
-      div.textContent = text;
-      return div.innerHTML;
-    }
-    
-    function formatAIReply(reply) {
-      return escapeHtml(reply).replace(/\n/g, '<br>');
-    }
-    
-    function scrollToInput() {
-      document.getElementById('commentInput').focus();
-      
-      // 關閉更多菜單
-      document.getElementById('moreMenu').classList.remove('show');
-    }
-  </script>
+        `).join('')}
+      </div>`;
+  } catch(e) { c.innerHTML='<p>載入錯誤</p>'; }
+}
+
+async function loadTStats() {
+  const c = document.getElementById('teacherContent');
+  c.innerHTML='<p style="color:#999;">載入中...</p>';
+  try {
+    const { data, err } = await client.from('comments').select('student_name');
+    if(err){c.innerHTML='<p>載入失敗</p>';return;}
+    const s={};data&&data.forEach(x=>{s[x.student_name]=(s[x.student_name]||0)+1;});
+    const sorted=Object.entries(s).sort((a,b)=>b[1]-a[1]);
+    c.innerHTML=`<h3 style="margin-bottom:8px;">留言統計</h3><p style="color:#999;font-size:12px;">總計：${data?data.length:0}則</p>${
+      sorted.map(([n,c],i)=>`<div style="display:flex;justify-content:space-between;padding:10px;border-bottom:1px solid #f0f0f0;"><span>${i+1}. ${esc(n)}</span><strong>${c} 則</strong></div>`).join('')
+    }`;
+  } catch(e) { c.innerHTML='<p>載入錯誤</p>'; }
+}
+
+async function delOne(id) { if(!confirm('確定刪除？'))return; await client.from('comments').delete().eq('id',id); loadTComments(); }
+async function deleteAll() { if(!confirm('確定刪除全部？不可復原！'))return; await client.from('comments').delete().neq('id','00000000-0000-0000-0000-000000000000'); loadTComments(); }
+
+function exportCSV() {
+  client.from('comments').select('*').order('created_at',{ascending:true}).then(({data,err})=>{
+    if(err){alert('匯出失敗');return;}
+    const csv=[['時間','學生','留言','AI回覆','回覆時間'],...data.map(d=>[
+      fmtT(d.created_at),d.student_name,d.content,d.ai_reply||'',d.replied_at?fmtT(d.replied_at):''
+    ])].map(r=>r.map(c=>`"${c}"`).join(',')).join('\n');
+    const blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8;'});
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+    a.download=`蘇軾朋友圈_${new Date().toISOString().slice(0,10)}.csv`; a.click(); URL.revokeObjectURL(a.href);
+  });
+}
+
+// ========== 工具函數 ==========
+function esc(t){const d=document.createElement('div'); d.textContent=t; return d.innerHTML;}
+function fmtT(iso){
+  if(!iso)return'';
+  const d=new Date(iso), now=new Date(), diff=(now-d)/1000;
+  if(diff<60)return'剛剛';
+  if(diff<3600)return Math.floor(diff/60)+'分鐘前';
+  if(diff<86400)return Math.floor(diff/3600)+'小時前';
+  return d.toLocaleDateString('zh-Hant',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
+}
+function focusInput(){document.getElementById('commentInput').focus(); closePopup();}
+</script>
 </body>
 </html>
