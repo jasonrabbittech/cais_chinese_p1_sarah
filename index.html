@@ -162,12 +162,7 @@
       width: 44px;
       height: 44px;
       border-radius: 6px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 24px;
-      color: white;
+      background: url('sushi-avatar.jpg') center/cover no-repeat;
       border: 2px solid rgba(255,255,255,0.9);
       box-shadow: 0 2px 8px rgba(0,0,0,0.4);
       overflow: hidden;
@@ -188,12 +183,7 @@
       width: 42px;
       height: 42px;
       border-radius: 6px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 22px;
-      color: white;
+      background: url('sushi-avatar.jpg') center/cover no-repeat;
       flex-shrink: 0;
       margin-right: 10px;
     }
@@ -354,7 +344,7 @@
     }
     
     .c-avatar.student { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
-    .c-avatar.sushi { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+    .c-avatar.sushi { background: url('sushi-avatar.jpg') center/cover no-repeat; }
     
     .c-body { flex: 1; min-width: 0; }
     
@@ -619,7 +609,7 @@
         <!-- 右下角作者信息（微信朋友圈標準樣式） -->
         <div class="post-author-overlay">
           <span class="post-author-name-overlay">蘇軾</span>
-          <div class="post-avatar-overlay">軾</div>
+          <div class="post-avatar-overlay"></div>
         </div>
       </div>
       
@@ -627,7 +617,7 @@
       <div class="post-body">
         <!-- 用戶頭像+名字 -->
         <div class="post-user-row">
-          <div class="post-user-avatar">軾</div>
+          <div class="post-user-avatar"></div>
           <div class="post-user-name">蘇軾</div>
         </div>
         
@@ -810,7 +800,7 @@ function renderComments(comments) {
       ${c.ai_reply ? `
       <div class="ai-reply-box">
         <div class="comment-row">
-          <div class="c-avatar sushi">軾</div>
+          <div class="c-avatar sushi"></div>
           <div class="c-body">
             <div class="c-name">蘇軾<span class="ai-badge">AI</span></div>
             <div class="c-text">${esc(c.ai_reply).replace(/\n/g,'<br>')}</div>
