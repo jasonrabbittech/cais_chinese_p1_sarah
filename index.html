@@ -594,7 +594,8 @@
     const SUPABASE_ANON_KEY = 'sb_publishable_j4SGtTlrZz1_B163jw-a7A_IRNSUo7s';
     
     // 初始化 Supabase 客戶端
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const { createClient } = supabase;
+    const client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     
     // 教師後台密碼（請修改為你自己的密碼）
     const TEACHER_PASSWORD = 'cais2024';
@@ -606,6 +607,8 @@
     // 初始化
     // ============================================================
     window.addEventListener('DOMContentLoaded', async () => {
+      console.log('頁面載入完成');
+      
       // 檢查是否已輸入姓名
       const savedName = localStorage.getItem('su_shi_name');
       if (savedName) {
@@ -645,17 +648,21 @@
     // 載入留言
     // ============================================================
     async function loadComments() {
-      const { data, error } = await supabase
-        .from('comments')
-        .select('*')
-        .order('created_at', { ascending: true });
-      
-      if (error) {
-        console.error('載入留言失敗：', error);
-        return;
+      try {
+        const { data, error } = await client
+          .from('comments')
+          .select('*')
+          .order('created_at', { ascending: true });
+        
+        if (error) {
+          console.error('載入留言失敗：', error);
+          return;
+        }
+        
+        renderComments(data);
+      } catch (err) {
+        console.error('載入留言錯誤：', err);
       }
-      
-      renderComments(data);
     }
     
     // ============================================================
@@ -665,7 +672,7 @@
       const container = document.getElementById('commentsList');
       const countEl = document.getElementById('commentCount');
       
-      if (comments.length === 0) {
+      if (!comments || comments.length === 0) {
         container.innerHTML = `
           <div class="empty-state">
             <div class="empty-state-icon">💬</div>
@@ -729,7 +736,7 @@
     // Realtime 訂閱
     // ============================================================
     function subscribeToChanges() {
-      supabase
+      client
         .channel('comments-channel')
         .on(
           'postgres_changes',
@@ -773,40 +780,48 @@
       submitBtn.disabled = true;
       submitBtn.textContent = '發送中...';
       
-      const { data, error } = await supabase
-        .from('comments')
-        .insert([
-          {
-            student_name: currentUserName,
-            content: content,
-            is_replying: true
-          }
-        ])
-        .select();
-      
-      if (error) {
-        console.error('發送失敗：', error);
+      try {
+        const { data, error } = await client
+          .from('comments')
+          .insert([
+            {
+              student_name: currentUserName,
+              content: content,
+              is_replying: true
+            }
+          ])
+          .select();
+        
+        if (error) {
+          console.error('發送失敗：', error);
+          alert('發送失敗，請重試');
+          submitBtn.disabled = false;
+          submitBtn.textContent = '發送';
+          return;
+        }
+        
+        input.value = '';
+        submitBtn.disabled = false;
+        submitBtn.textContent = '發送';
+        
+        // 觸發 AI 回覆（透過 Edge Function）
+        if (data && data[0]) {
+          triggerAIReply(data[0]);
+        }
+      } catch (err) {
+        console.error('發送錯誤：', err);
         alert('發送失敗，請重試');
         submitBtn.disabled = false;
         submitBtn.textContent = '發送';
-        return;
       }
-      
-      input.value = '';
-      submitBtn.disabled = false;
-      submitBtn.textContent = '發送';
-      
-      // 觸發 AI 回覆（透過 Edge Function）
-      triggerAIReply(data[0]);
     }
     
     // ============================================================
     // 觸發 AI 回覆
     // ============================================================
     async function triggerAIReply(comment) {
-      // 方法 1：直接呼叫 Edge Function（推薦）
       try {
-        const { data, error } = await supabase.functions.invoke('su-shi-reply', {
+        const { data, error } = await client.functions.invoke('su-shi-reply', {
           body: { record: comment }
         });
         
@@ -840,17 +855,21 @@
       // 延遲 2-4 秒，模擬「正在輸入」
       await new Promise(resolve => setTimeout(resolve, 2000 + Math.random() * 2000));
       
-      const { error } = await supabase
-        .from('comments')
-        .update({
-          ai_reply: randomReply,
-          replied_at: new Date().toISOString(),
-          is_replying: false
-        })
-        .eq('id', commentId);
-      
-      if (error) {
-        console.error('更新 AI 回覆失敗：', error);
+      try {
+        const { error } = await client
+          .from('comments')
+          .update({
+            ai_reply: randomReply,
+            replied_at: new Date().toISOString(),
+            is_replying: false
+          })
+          .eq('id', commentId);
+        
+        if (error) {
+          console.error('更新 AI 回覆失敗：', error);
+        }
+      } catch (err) {
+        console.error('更新 AI 回覆錯誤：', err);
       }
     }
     
@@ -890,109 +909,125 @@
       const content = document.getElementById('teacherContent');
       content.innerHTML = '<p>載入中...</p>';
       
-      const { data, error } = await supabase
-        .from('comments')
-        .select('*')
-        .order('created_at', { ascending: false });
-      
-      if (error) {
-        content.innerHTML = '<p>載入失敗</p>';
-        return;
+      try {
+        const { data, error } = await client
+          .from('comments')
+          .select('*')
+          .order('created_at', { ascending: false });
+        
+        if (error) {
+          content.innerHTML = '<p>載入失敗</p>';
+          return;
+        }
+        
+        if (!data || data.length === 0) {
+          content.innerHTML = '<p>還沒有留言</p>';
+          return;
+        }
+        
+        content.innerHTML = `
+          <div style="margin-bottom: 15px;">
+            <button class="teacher-btn" onclick="exportCSV()">📥 匯出 CSV</button>
+            <button class="teacher-btn danger" onclick="deleteAllComments()">🗑️ 刪除全部留言</button>
+          </div>
+          <div style="max-height: 50vh; overflow-y: auto;">
+            ${data.map(c => `
+              <div style="padding: 10px; border-bottom: 1px solid #f0f0f0;">
+                <strong>${escapeHtml(c.student_name)}</strong>
+                <span style="color: #999; font-size: 12px;">${formatTime(c.created_at)}</span>
+                <p style="margin: 5px 0;">${escapeHtml(c.content)}</p>
+                ${c.ai_reply ? `<p style="color: #667eea; font-size: 13px;">💬 ${escapeHtml(c.ai_reply)}</p>` : ''}
+                <button class="teacher-btn danger" onclick="deleteComment('${c.id}')">刪除</button>
+              </div>
+            `).join('')}
+          </div>
+        `;
+      } catch (err) {
+        content.innerHTML = '<p>載入錯誤</p>';
       }
-      
-      if (data.length === 0) {
-        content.innerHTML = '<p>還沒有留言</p>';
-        return;
-      }
-      
-      content.innerHTML = `
-        <div style="margin-bottom: 15px;">
-          <button class="teacher-btn" onclick="exportCSV()">📥 匯出 CSV</button>
-          <button class="teacher-btn danger" onclick="deleteAllComments()">🗑️ 刪除全部留言</button>
-        </div>
-        <div style="max-height: 50vh; overflow-y: auto;">
-          ${data.map(c => `
-            <div style="padding: 10px; border-bottom: 1px solid #f0f0f0;">
-              <strong>${escapeHtml(c.student_name)}</strong>
-              <span style="color: #999; font-size: 12px;">${formatTime(c.created_at)}</span>
-              <p style="margin: 5px 0;">${escapeHtml(c.content)}</p>
-              ${c.ai_reply ? `<p style="color: #667eea; font-size: 13px;">💬 ${escapeHtml(c.ai_reply)}</p>` : ''}
-              <button class="teacher-btn danger" onclick="deleteComment('${c.id}')">刪除</button>
-            </div>
-          `).join('')}
-        </div>
-      `;
     }
     
     async function loadTeacherStats() {
       const content = document.getElementById('teacherContent');
       content.innerHTML = '<p>載入中...</p>';
       
-      const { data, error } = await supabase
-        .from('comments')
-        .select('student_name');
-      
-      if (error) {
-        content.innerHTML = '<p>載入失敗</p>';
-        return;
+      try {
+        const { data, error } = await client
+          .from('comments')
+          .select('student_name');
+        
+        if (error) {
+          content.innerHTML = '<p>載入失敗</p>';
+          return;
+        }
+        
+        // 統計每位學生的留言數
+        const stats = {};
+        data.forEach(c => {
+          stats[c.student_name] = (stats[c.student_name] || 0) + 1;
+        });
+        
+        const sorted = Object.entries(stats).sort((a, b) => b[1] - a[1]);
+        
+        content.innerHTML = `
+          <h3>留言統計</h3>
+          <p style="color: #999; margin-bottom: 15px;">總留言數：${data.length}</p>
+          <div>
+            ${sorted.map(([name, count], i) => `
+              <div style="display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #f0f0f0;">
+                <span>${i + 1}. ${escapeHtml(name)}</span>
+                <strong>${count} 則留言</strong>
+              </div>
+            `).join('')}
+          </div>
+        `;
+      } catch (err) {
+        content.innerHTML = '<p>載入錯誤</p>';
       }
-      
-      // 統計每位學生的留言數
-      const stats = {};
-      data.forEach(c => {
-        stats[c.student_name] = (stats[c.student_name] || 0) + 1;
-      });
-      
-      const sorted = Object.entries(stats).sort((a, b) => b[1] - a[1]);
-      
-      content.innerHTML = `
-        <h3>留言統計</h3>
-        <p style="color: #999; margin-bottom: 15px;">總留言數：${data.length}</p>
-        <div>
-          ${sorted.map(([name, count], i) => `
-            <div style="display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #f0f0f0;">
-              <span>${i + 1}. ${escapeHtml(name)}</span>
-              <strong>${count} 則留言</strong>
-            </div>
-          `).join('')}
-        </div>
-      `;
     }
     
     async function deleteComment(id) {
       if (!confirm('確定要刪除這則留言嗎？')) return;
       
-      const { error } = await supabase
-        .from('comments')
-        .delete()
-        .eq('id', id);
-      
-      if (error) {
-        alert('刪除失敗');
-        return;
+      try {
+        const { error } = await client
+          .from('comments')
+          .delete()
+          .eq('id', id);
+        
+        if (error) {
+          alert('刪除失敗');
+          return;
+        }
+        
+        loadTeacherComments();
+      } catch (err) {
+        alert('刪除錯誤');
       }
-      
-      loadTeacherComments();
     }
     
     async function deleteAllComments() {
       if (!confirm('確定要刪除全部留言嗎？此操作不可復原！')) return;
       
-      const { error } = await supabase
-        .from('comments')
-        .delete()
-        .neq('id', '00000000-0000-0000-0000-000000000000');
-      
-      if (error) {
-        alert('刪除失敗');
-        return;
+      try {
+        const { error } = await client
+          .from('comments')
+          .delete()
+          .neq('id', '00000000-0000-0000-0000-000000000000');
+        
+        if (error) {
+          alert('刪除失敗');
+          return;
+        }
+        
+        loadTeacherComments();
+      } catch (err) {
+        alert('刪除錯誤');
       }
-      
-      loadTeacherComments();
     }
     
     function exportCSV() {
-      supabase
+      client
         .from('comments')
         .select('*')
         .order('created_at', { ascending: true })
