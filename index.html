@@ -15,7 +15,6 @@
       line-height: 1.6;
     }
     
-    /* 手機容器 */
     .container {
       max-width: 500px;
       margin: 0 auto;
@@ -24,7 +23,7 @@
       box-shadow: 0 0 20px rgba(0,0,0,0.1);
     }
     
-    /* 頂部標題列 */
+    /* 頂部標題 */
     .header {
       background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
       color: white;
@@ -52,67 +51,95 @@
       cursor: pointer;
     }
     
-    .header-btn:hover {
-      background: rgba(255,255,255,0.3);
+    /* 帖子圖片區域 */
+    .post-image-area {
+      width: 100%;
+      height: 250px;
+      background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+      position: relative;
+      overflow: hidden;
     }
     
-    /* 蘇軾帖子 */
-    .post {
-      padding: 20px;
-      border-bottom: 8px solid #f5f5f5;
+    .post-image-area::before {
+      content: '';
+      position: absolute;
+      width: 200px;
+      height: 200px;
+      background: radial-gradient(circle, rgba(255,255,200,0.3) 0%, transparent 70%);
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      border-radius: 50%;
     }
     
-    .post-header {
+    .moon {
+      position: absolute;
+      width: 80px;
+      height: 80px;
+      background: radial-gradient(circle, #fff9c4 0%, #ffd54f 100%);
+      border-radius: 50%;
+      top: 40px;
+      right: 60px;
+      box-shadow: 0 0 40px rgba(255,215,0,0.6);
+    }
+    
+    /* 作者信息（圖片右下角） */
+    .post-author-overlay {
+      position: absolute;
+      bottom: 15px;
+      right: 15px;
       display: flex;
       align-items: center;
-      margin-bottom: 15px;
+      gap: 10px;
     }
     
-    .post-avatar {
-      width: 48px;
-      height: 48px;
+    .post-avatar-small {
+      width: 50px;
+      height: 50px;
       border-radius: 8px;
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 24px;
-      margin-right: 12px;
-      flex-shrink: 0;
+      font-size: 28px;
+      border: 2px solid white;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.3);
     }
     
-    .post-author {
-      flex: 1;
-    }
-    
-    .post-author-name {
+    .post-author-name-overlay {
+      color: white;
       font-size: 16px;
       font-weight: 600;
-      color: #333;
+      text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+    }
+    
+    /* 帖子內容 */
+    .post-content-area {
+      padding: 15px 20px;
     }
     
     .post-meta {
       font-size: 12px;
       color: #999;
-      margin-top: 2px;
+      margin-bottom: 10px;
     }
     
-    .post-content {
+    .post-text {
       font-size: 15px;
       line-height: 1.8;
       color: #333;
       margin-bottom: 15px;
     }
     
-    .post-content p {
-      margin-bottom: 10px;
+    .post-text p {
+      margin-bottom: 8px;
     }
     
     .post-tags {
       display: flex;
       flex-wrap: wrap;
       gap: 8px;
-      margin-top: 15px;
+      margin-bottom: 15px;
     }
     
     .post-tag {
@@ -123,28 +150,87 @@
       font-size: 13px;
     }
     
+    /* 帖子操作欄 */
     .post-actions {
-      display: flex;
-      gap: 30px;
-      padding-top: 15px;
+      position: relative;
+      padding: 12px 20px;
       border-top: 1px solid #f0f0f0;
-      margin-top: 15px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
     }
     
-    .post-action {
+    .post-action-left {
+      display: flex;
+      gap: 20px;
+    }
+    
+    .post-action-btn {
       display: flex;
       align-items: center;
-      gap: 6px;
-      color: #999;
-      font-size: 14px;
-      cursor: pointer;
+      gap: 5px;
       background: none;
       border: none;
-      padding: 5px 0;
+      color: #666;
+      font-size: 14px;
+      cursor: pointer;
+      padding: 5px;
     }
     
-    .post-action:hover {
-      color: #576b95;
+    .post-action-btn.liked {
+      color: #ff4444;
+    }
+    
+    .more-btn {
+      background: none;
+      border: none;
+      font-size: 20px;
+      cursor: pointer;
+      padding: 5px 10px;
+      color: #999;
+      letter-spacing: 3px;
+    }
+    
+    /* 更多菜單 */
+    .more-menu {
+      position: absolute;
+      bottom: 50px;
+      right: 20px;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+      padding: 8px 0;
+      min-width: 140px;
+      display: none;
+      z-index: 50;
+    }
+    
+    .more-menu.show {
+      display: block;
+      animation: fadeIn 0.2s ease;
+    }
+    
+    .more-menu-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 18px;
+      background: none;
+      border: none;
+      width: 100%;
+      text-align: left;
+      font-size: 14px;
+      color: #333;
+      cursor: pointer;
+    }
+    
+    .more-menu-item:active {
+      background: #f5f5f5;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
     }
     
     /* 留言區 */
@@ -164,11 +250,6 @@
       padding: 15px 0;
       border-bottom: 1px solid #f0f0f0;
       animation: fadeIn 0.3s ease;
-    }
-    
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
     }
     
     .comment-header {
@@ -241,32 +322,6 @@
     
     .comment-ai-reply .comment-content {
       margin-left: 0;
-    }
-    
-    .replying-indicator {
-      margin-top: 10px;
-      margin-left: 46px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      color: #999;
-      font-size: 13px;
-    }
-    
-    .typing-dot {
-      width: 6px;
-      height: 6px;
-      background: #667eea;
-      border-radius: 50%;
-      animation: typing 1.4s infinite;
-    }
-    
-    .typing-dot:nth-child(2) { animation-delay: 0.2s; }
-    .typing-dot:nth-child(3) { animation-delay: 0.4s; }
-    
-    @keyframes typing {
-      0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
-      30% { transform: translateY(-8px); opacity: 1; }
     }
     
     /* 留言輸入區 */
@@ -378,10 +433,6 @@
       font-family: inherit;
     }
     
-    .modal-btn:hover {
-      background: #5568d3;
-    }
-    
     /* 教師後台 Modal */
     .teacher-modal {
       position: fixed;
@@ -459,10 +510,6 @@
       background: #f5576c;
     }
     
-    .teacher-btn:hover {
-      opacity: 0.9;
-    }
-    
     .close-btn {
       float: right;
       background: none;
@@ -482,13 +529,6 @@
     .empty-state-icon {
       font-size: 48px;
       margin-bottom: 15px;
-    }
-    
-    /* 響應式 */
-    @media (max-width: 500px) {
-      .container {
-        box-shadow: none;
-      }
     }
   </style>
 </head>
@@ -530,38 +570,62 @@
     
     <!-- 蘇軾帖子 -->
     <div class="post">
-      <div class="post-header">
-        <div class="post-avatar">🎭</div>
-        <div class="post-author">
-          <div class="post-author-name">蘇軾</div>
-          <div class="post-meta">密州·超然台 · 3分鐘前</div>
+      <!-- 圖片區域（上方1/3） -->
+      <div class="post-image-area">
+        <div class="moon"></div>
+        
+        <!-- 作者信息（右下角） -->
+        <div class="post-author-overlay">
+          <div class="post-author-name-overlay">蘇軾</div>
+          <div class="post-avatar-small">軾</div>
         </div>
       </div>
       
-      <div class="post-content">
-        <p>丙辰中秋，歡飲達旦，大醉...</p>
-        <p>月亮真圓啊🌕 想起在齊州的子由（蘇轍），七年未見，甚是想念。</p>
-        <p>人生就是這樣吧，「人有悲歡離合，月有陰晴圓缺」，此事古難全。唯願天下人都能平安健康，即便相隔千里，也能共賞這一輪明月。🌙</p>
-        <p>對了，今晚的月光配密州的美酒，絕了！🍶</p>
+      <!-- 帖子內容 -->
+      <div class="post-content-area">
+        <div class="post-meta">密州·超然台 · 3分鐘前</div>
+        
+        <div class="post-text">
+          <p>丙辰中秋，歡飲達旦，大醉...</p>
+          <p>月亮真圓啊🌕 想起在齊州的子由（蘇轍），七年未見，甚是想念。</p>
+          <p>人生就是這樣吧，「人有悲歡離合，月有陰晴圓缺」，此事古難全。唯願天下人都能平安健康，即便相隔千里，也能共賞這一輪明月。🌙</p>
+          <p>對了，今晚的月光配密州的美酒，絕了！🍶</p>
+        </div>
+        
+        <div class="post-tags">
+          <span class="post-tag">#中秋</span>
+          <span class="post-tag">#思念</span>
+          <span class="post-tag">#水調歌頭</span>
+          <span class="post-tag">#密州</span>
+        </div>
       </div>
       
-      <div class="post-tags">
-        <span class="post-tag">#中秋</span>
-        <span class="post-tag">#思念</span>
-        <span class="post-tag">#水調歌頭</span>
-        <span class="post-tag">#密州出獵</span>
-      </div>
-      
+      <!-- 操作欄 -->
       <div class="post-actions">
-        <button class="post-action" onclick="scrollToInput()">💬 歡迎留言...</button>
-        <button class="post-action">👍 128</button>
+        <div class="post-action-left">
+          <button class="post-action-btn" id="likeBtn" onclick="toggleLike()">
+            <span id="likeIcon">🤍</span>
+            <span id="likeCount">128</span>
+          </button>
+          <button class="post-action-btn" onclick="scrollToInput()">
+            💬 <span id="commentCount">0</span>
+          </button>
+        </div>
+        
+        <button class="more-btn" onclick="toggleMoreMenu()">⋮</button>
+        
+        <!-- 更多菜單 -->
+        <div class="more-menu" id="moreMenu">
+          <button class="more-menu-item" onclick="toggleLike()">👍 讚</button>
+          <button class="more-menu-item" onclick="scrollToInput()">💬 留言</button>
+        </div>
       </div>
     </div>
     
     <!-- 留言區 -->
     <div class="comments-section">
       <div class="comments-header">
-        💬 留言（<span id="commentCount">0</span>）
+        💬 留言（<span id="commentCountText">0</span>）
       </div>
       
       <div id="commentsList">
@@ -588,20 +652,23 @@
   
   <script>
     // ============================================================
-    // Supabase 設定（請替換為你的專案資訊）
+    // Supabase 設定
     // ============================================================
     const SUPABASE_URL = 'https://pzatgmavjvrastnumxty.supabase.co';
     const SUPABASE_ANON_KEY = 'sb_publishable_j4SGtTlrZz1_B163jw-a7A_IRNSUo7s';
     
-    // 初始化 Supabase 客戶端
     const { createClient } = supabase;
     const client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     
-    // 教師後台密碼（請修改為你自己的密碼）
+    // 教師後台密碼
     const TEACHER_PASSWORD = 'cais2024';
     
     // 當前使用者姓名
     let currentUserName = '';
+    
+    // 點讚狀態
+    let isLiked = false;
+    let likeCount = 128;
     
     // ============================================================
     // 初始化
@@ -617,6 +684,9 @@
         await loadComments();
         subscribeToChanges();
       }
+      
+      // 載入點讚狀態
+      loadLikeState();
     });
     
     // ============================================================
@@ -637,12 +707,56 @@
       subscribeToChanges();
     }
     
-    // 切換身份
-    function switchIdentity() {
-      localStorage.removeItem('su_shi_name');
-      document.getElementById('nameInput').value = '';
-      document.getElementById('nameModal').style.display = 'flex';
+    // ============================================================
+    // 點讚功能
+    // ============================================================
+    function loadLikeState() {
+      const liked = localStorage.getItem('su_shi_like');
+      if (liked === 'true') {
+        isLiked = true;
+        document.getElementById('likeIcon').textContent = '❤️';
+        document.getElementById('likeBtn').classList.add('liked');
+      }
     }
+    
+    function toggleLike() {
+      isLiked = !isLiked;
+      
+      if (isLiked) {
+        likeCount++;
+        document.getElementById('likeIcon').textContent = '❤️';
+        document.getElementById('likeBtn').classList.add('liked');
+        localStorage.setItem('su_shi_like', 'true');
+      } else {
+        likeCount--;
+        document.getElementById('likeIcon').textContent = '🤍';
+        document.getElementById('likeBtn').classList.remove('liked');
+        localStorage.setItem('su_shi_like', 'false');
+      }
+      
+      document.getElementById('likeCount').textContent = likeCount;
+      
+      // 關閉更多菜單
+      document.getElementById('moreMenu').classList.remove('show');
+    }
+    
+    // ============================================================
+    // 更多菜單
+    // ============================================================
+    function toggleMoreMenu() {
+      const menu = document.getElementById('moreMenu');
+      menu.classList.toggle('show');
+    }
+    
+    // 點擊其他地方關閉菜單
+    document.addEventListener('click', (e) => {
+      const menu = document.getElementById('moreMenu');
+      const btn = document.querySelector('.more-btn');
+      
+      if (!menu.contains(e.target) && !btn.contains(e.target)) {
+        menu.classList.remove('show');
+      }
+    });
     
     // ============================================================
     // 載入留言
@@ -670,7 +784,7 @@
     // ============================================================
     function renderComments(comments) {
       const container = document.getElementById('commentsList');
-      const countEl = document.getElementById('commentCount');
+      const countEls = document.querySelectorAll('#commentCount, #commentCountText');
       
       if (!comments || comments.length === 0) {
         container.innerHTML = `
@@ -679,16 +793,15 @@
             <p>還沒有留言，來搶沙發吧！</p>
           </div>
         `;
-        countEl.textContent = '0';
+        countEls.forEach(el => el.textContent = '0');
         return;
       }
       
-      countEl.textContent = comments.length;
+      countEls.forEach(el => el.textContent = comments.length);
       
       container.innerHTML = comments.map(comment => {
         const timeStr = formatTime(comment.created_at);
         const isAIReply = comment.ai_reply !== null && comment.ai_reply !== undefined;
-        const isReplying = comment.is_replying;
         
         return `
           <div class="comment-item" id="comment-${comment.id}">
@@ -701,21 +814,12 @@
             </div>
             <div class="comment-content">${escapeHtml(comment.content)}</div>
             
-            ${isReplying && !isAIReply ? `
-              <div class="replying-indicator" id="replying-${comment.id}">
-                <div class="typing-dot"></div>
-                <div class="typing-dot"></div>
-                <div class="typing-dot"></div>
-                <span>蘇軾正在回覆...</span>
-              </div>
-            ` : ''}
-            
             ${isAIReply ? `
               <div class="comment-ai-reply">
                 <div class="comment-header">
                   <div class="comment-avatar sushi">軾</div>
                   <div class="comment-meta">
-                    <div class="comment-name">蘇軾 <span class="comment-badge">🤖 AI</span></div>
+                    <div class="comment-name">蘇軾 <span class="comment-badge">🤖</span></div>
                     <div class="comment-time">${formatTime(comment.replied_at)}</div>
                   </div>
                 </div>
@@ -725,11 +829,6 @@
           </div>
         `;
       }).join('');
-      
-      // 捲動到最底部
-      setTimeout(() => {
-        window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
-      }, 100);
     }
     
     // ============================================================
@@ -786,8 +885,7 @@
           .insert([
             {
               student_name: currentUserName,
-              content: content,
-              is_replying: true
+              content: content
             }
           ])
           .select();
@@ -804,7 +902,7 @@
         submitBtn.disabled = false;
         submitBtn.textContent = '發送';
         
-        // 觸發 AI 回覆（透過 Edge Function）
+        // 觸發 AI 回覆
         if (data && data[0]) {
           triggerAIReply(data[0]);
         }
@@ -821,29 +919,30 @@
     // ============================================================
     async function triggerAIReply(comment) {
       try {
+        // 嘗試呼叫 Edge Function
         const { data, error } = await client.functions.invoke('su-shi-reply', {
           body: { record: comment }
         });
         
         if (error) {
-          console.error('AI 回覆失敗：', error);
-          // 如果 Edge Function 還沒部署，使用固定回覆模板
+          console.error('Edge Function 錯誤：', error);
+          // 使用固定回覆
           useFallbackReply(comment.id);
         }
       } catch (err) {
         console.error('呼叫 Edge Function 失敗：', err);
-        // 使用固定回覆模板
+        // 使用固定回覆
         useFallbackReply(comment.id);
       }
     }
     
-    // 固定回覆模板（當 AI API 不可用時）
+    // 固定回覆模板
     const FALLBACK_REPLIES = [
-      '諸位安好。月色甚美，諸位可願與吾共賞？',
+      '諸位安好。月色甚美，諸位可願與吾共賞？🌙',
       '哈哈，甚好甚好！諸位以為如何？',
       '月圓之夜，思念故人。諸位可有何感觸？',
       '人生如月，有圓有缺。諸位且珍惜當下。',
-      '美酒配明月，人生一大樂事也！諸位以為然否？',
+      '美酒配明月，人生一大樂事也！諸位以為然否？🍶',
       '子由（蘇轍）若在，定當共飲。諸位有兄弟姊妹否？',
       '但願人長久，千里共嬋娟。諸位以為這句何解？',
       '密州雖好，終非故鄉。諸位可有思鄉之時？'
@@ -852,7 +951,7 @@
     async function useFallbackReply(commentId) {
       const randomReply = FALLBACK_REPLIES[Math.floor(Math.random() * FALLBACK_REPLIES.length)];
       
-      // 延遲 2-4 秒，模擬「正在輸入」
+      // 延遲 2-4 秒
       await new Promise(resolve => setTimeout(resolve, 2000 + Math.random() * 2000));
       
       try {
@@ -860,8 +959,7 @@
           .from('comments')
           .update({
             ai_reply: randomReply,
-            replied_at: new Date().toISOString(),
-            is_replying: false
+            replied_at: new Date().toISOString()
           })
           .eq('id', commentId);
         
@@ -894,7 +992,6 @@
     }
     
     function switchTab(tab, btn) {
-      // 更新按鈕樣式
       document.querySelectorAll('.teacher-tab').forEach(t => t.classList.remove('active'));
       btn.classList.add('active');
       
@@ -928,7 +1025,7 @@
         content.innerHTML = `
           <div style="margin-bottom: 15px;">
             <button class="teacher-btn" onclick="exportCSV()">📥 匯出 CSV</button>
-            <button class="teacher-btn danger" onclick="deleteAllComments()">🗑️ 刪除全部留言</button>
+            <button class="teacher-btn danger" onclick="deleteAllComments()">🗑️ 刪除全部</button>
           </div>
           <div style="max-height: 50vh; overflow-y: auto;">
             ${data.map(c => `
@@ -936,7 +1033,7 @@
                 <strong>${escapeHtml(c.student_name)}</strong>
                 <span style="color: #999; font-size: 12px;">${formatTime(c.created_at)}</span>
                 <p style="margin: 5px 0;">${escapeHtml(c.content)}</p>
-                ${c.ai_reply ? `<p style="color: #667eea; font-size: 13px;">💬 ${escapeHtml(c.ai_reply)}</p>` : ''}
+                ${c.ai_reply ? `<p style="color: #667eea; font-size: 13px;">💬 ${escapeHtml(c.ai_reply)}</p>` : '<p style="color: #999; font-size: 12px;">尚未回覆</p>'}
                 <button class="teacher-btn danger" onclick="deleteComment('${c.id}')">刪除</button>
               </div>
             `).join('')}
@@ -961,7 +1058,6 @@
           return;
         }
         
-        // 統計每位學生的留言數
         const stats = {};
         data.forEach(c => {
           stats[c.student_name] = (stats[c.student_name] || 0) + 1;
@@ -976,7 +1072,7 @@
             ${sorted.map(([name, count], i) => `
               <div style="display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #f0f0f0;">
                 <span>${i + 1}. ${escapeHtml(name)}</span>
-                <strong>${count} 則留言</strong>
+                <strong>${count} 則</strong>
               </div>
             `).join('')}
           </div>
@@ -987,7 +1083,7 @@
     }
     
     async function deleteComment(id) {
-      if (!confirm('確定要刪除這則留言嗎？')) return;
+      if (!confirm('確定刪除？')) return;
       
       try {
         const { error } = await client
@@ -1007,7 +1103,7 @@
     }
     
     async function deleteAllComments() {
-      if (!confirm('確定要刪除全部留言嗎？此操作不可復原！')) return;
+      if (!confirm('確定刪除全部？不可復原！')) return;
       
       try {
         const { error } = await client
@@ -1038,7 +1134,7 @@
           }
           
           const csv = [
-            ['時間', '學生姓名', '留言內容', '蘇軾回覆', '回覆時間'],
+            ['時間', '學生', '留言', '蘇軾回覆', '回覆時間'],
             ...data.map(c => [
               formatTime(c.created_at),
               c.student_name,
@@ -1052,7 +1148,7 @@
           const url = URL.createObjectURL(blob);
           const a = document.createElement('a');
           a.href = url;
-          a.download = `蘇軾朋友圈留言_${new Date().toISOString().slice(0,10)}.csv`;
+          a.download = `蘇軾朋友圈_${new Date().toISOString().slice(0,10)}.csv`;
           a.click();
           URL.revokeObjectURL(url);
         });
@@ -1065,7 +1161,7 @@
       if (!isoString) return '';
       const date = new Date(isoString);
       const now = new Date();
-      const diff = (now - date) / 1000; // 秒
+      const diff = (now - date) / 1000;
       
       if (diff < 60) return '剛剛';
       if (diff < 3600) return `${Math.floor(diff / 60)}分鐘前`;
@@ -1081,12 +1177,14 @@
     }
     
     function formatAIReply(reply) {
-      // 將換行轉為 <br>
       return escapeHtml(reply).replace(/\n/g, '<br>');
     }
     
     function scrollToInput() {
       document.getElementById('commentInput').focus();
+      
+      // 關閉更多菜單
+      document.getElementById('moreMenu').classList.remove('show');
     }
   </script>
 </body>
