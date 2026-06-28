@@ -787,20 +787,38 @@ async function submitComment() {
 
 // ========== AI 回覆 ==========
 async function triggerAI(comment) {
+  console.log('🤖 開始呼叫 AI...', comment);
   try {
-    const { data, error } = await client.functions.invoke('su-shi-reply', { body: { record: comment } });
-    if (error || !data || !data.reply) {
-      console.log('Edge Function 未返回回复，使用 fallback', error || data);
+    // 直接用 fetch 呼叫 Edge Function（比 client.functions.invoke 更可靠）
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/su-shi-reply`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+        'apikey': SUPABASE_ANON_KEY,
+      },
+      body: JSON.stringify({ record: comment }),
+    });
+
+    const data = await res.json();
+    console.log('🤖 AI 回應:', data);
+
+    if (!res.ok || !data.reply) {
+      console.warn('⚠️ AI 未返回有效回覆，使用 fallback:', data);
       fallback(comment.id);
     } else {
       // 成功取得 AI 回复，写入数据库
       const { error: updErr } = await client.from('comments')
         .update({ ai_reply: data.reply, replied_at: new Date().toISOString() })
         .eq('id', comment.id);
-      if (updErr) { console.error('写入 AI 回复失败:', updErr); fallback(comment.id); }
+      if (updErr) { 
+        console.error('❌ 寫入 AI 回復失敗:', updErr); 
+        // 即使寫入失敗也嘗試 fallback
+        fallback(comment.id); 
+      }
     }
   } catch(e) {
-    console.log('Edge Function 调用失败，使用 fallback:', e);
+    console.error('❌ Edge Function 調用異常，使用 fallback:', e);
     fallback(comment.id);
   }
 }
