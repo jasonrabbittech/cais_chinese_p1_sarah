@@ -1,0 +1,37 @@
+name: PR Preview
+
+on:
+  pull_request:
+    branches: [main, testing]
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Comment PR with preview info
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const branch = context.payload.pull_request.head.ref;
+            const body = `## 📋 预览信息
+            
+            - **分支**: \`${branch}\`
+            - **目标**: \`${context.payload.pull_request.base.ref}\`
+            
+            ### 测试步骤
+            1. 下载此 PR 的 artifact
+            2. 在本地打开 \`index.html\` 测试
+            
+            ### 合并后
+            - 合并到 \`testing\` → 自动部署到 [测试环境](https://jasonrabbittech.github.io/cais_chinese_p1_sarah/)
+            - 合并到 \`main\` → 自动部署到生产环境`;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });
