@@ -778,12 +778,57 @@ function subscribeRT() {
     .subscribe();
 }
 
+// ============================================================
+// 不當內容過濾器（前端攔截）
+// ============================================================
+const PROFANITY_WORDS = [
+  // 中文髒話 / 侮辱性詞彙
+  "髒話","他媽的","他妈的","tmd","TMD",
+  "去你媽的","去你妈的","去你的","滾","滾蛋",
+  "白癡","笨蛋","傻逼","煞筆","沙雕",
+  "靠北","幹","幹你","操你","草你",
+  "死人","去死","殺你","人渣","賤人",
+  "廢物","廢物","垃圾","混蛋","王八蛋",
+  "媽的","妈的","你媽","你妈",
+  // 粵語髒話
+  "冚家鏟","冚家铲","含家鏟","含家铲",
+  "丟","丟你","撚","撚你","冚","冚你",
+  // 英文髒話
+  "fuck","shit","bitch","asshole","bastard","damn",
+  "idiot","stupid","hate","kill","die","retard",
+  "nigger","faggot",
+  // 其他不當內容
+  "色情","賭博","毒品","自殺","自杀",
+];
+const PROFANITY_REGEX = [
+  /f\s*u\s*c\s*k/gi,
+  /s\s*h\s*i\s*t/gi,
+  /b\s*i\s*t\s*c\s*h/gi,
+];
+
+function containsProfanity(text) {
+  const lower = text.toLowerCase();
+  for (const word of PROFANITY_WORDS) {
+    if (lower.includes(word.toLowerCase())) return true;
+  }
+  for (const re of PROFANITY_REGEX) {
+    if (re.test(text)) return true;
+  }
+  return false;
+}
+
 // ========== 提交留言 ==========
 async function submitComment() {
   const input = document.getElementById('commentInput');
   const content = input.value.trim();
   if (!content) return;
   if (!currentUserName) { alert('請先輸入姓名'); return; }
+  // 不當內容檢查
+  if (containsProfanity(content)) {
+    alert('留言內容不當，請使用文明用語 🙏');
+    input.focus();
+    return;
+  }
   
   const btn = document.getElementById('submitBtn');
   btn.disabled = true; btn.textContent = '發送中...';

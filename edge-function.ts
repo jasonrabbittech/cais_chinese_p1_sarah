@@ -58,6 +58,39 @@ const FALLBACK_REPLIES = [
 // ============================================================
 // 主入口 — 使用 Deno 2 原生 Deno.serve()
 // ============================================================
+
+// ============================================================
+// 不當內容過濾器（伺服器端驗證）
+// ============================================================
+const PROFANITY_WORDS = [
+  "髒話","他媽的","tmd","TMD",
+  "去你媽的","去你的","滾","滾蛋",
+  "笨蛋","傻逼","煞筆","沙雕",
+  "靠北","幹","幹你","操你",
+  "死人","去死","殺你","人渣",
+  "廢物","垃圾","混蛋","王八蛋",
+  "媽的","你媽",
+  "冚家鏟","冚家鏟","含家鏟","含家鏟",
+  "丟","丟你","撚","撚你",
+  "fuck","shit","bitch","asshole","bastard","damn",
+  "idiot","stupid","hate","kill","die","retard",
+  "nigger","faggot",
+  "色情","賭博","毒品","自殺","自殺",
+];
+
+function containsProfanity(text: string): boolean {
+  const lower = text.toLowerCase();
+  for (const word of PROFANITY_WORDS) {
+    if (lower.includes(word.toLowerCase())) return true;
+  }
+  const patterns = [/f\s*u\s*c\s*k/gi, /s\s*h\s*i\s*t/gi, /b\s*i\s*t\s*c\s*h/gi];
+  for (const re of patterns) {
+    if (re.test(text)) return true;
+  }
+  return false;
+}
+
+
 Deno.serve(async (req: Request) => {
   // CORS preflight
   if (req.method === "OPTIONS") {
@@ -83,6 +116,17 @@ Deno.serve(async (req: Request) => {
 
     const { id, student_name, content } = record;
     console.log(`[su-shi-reply] 📨 收到留言: ${student_name} — ${content}`);
+
+    // 不當內容檢查
+    if (containsProfanity(content)) {
+      console.warn(`[su-shi-reply] ⚠️ 檢測到不當內容: ${student_name}`);
+      aiReply = "同學，請使用文明用語。蘇某雖豪放，亦講禮儀。🙏";
+      // 寫入資料庫並返回
+      if (SERVICE_ROLE_KEY) {
+        try { await updateCommentDB(id, aiReply); } catch(e) { console.error(e); }
+      }
+      return jsonResponse({ success: true, reply: aiReply, flagged: true });
+    }
 
     let aiReply: string;
 
