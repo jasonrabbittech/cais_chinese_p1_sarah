@@ -789,10 +789,51 @@ async function submitComment() {
 }
 
 // ========== AI 回覆 ==========
+// 蘇軾 System Prompt（用於直接呼叫 DeepSeek 或智能匹配）
+const SU_SHI_PROMPT_CONTEXT = `你是宋代文人蘇軾（東坡居士）。
+性格：豁達樂觀、幽默風趣、思念弟弟蘇轍（子由）、熱愛美食美酒。
+背景：1076年中秋在密州，大醉後寫下《水調歌頭·明月幾時有》，思念七年未見的子由。
+回覆風格：繁體中文、文言白話夾雜、50-150字、適當引用詩詞、像親切長輩。`;
+
+// 智能回覆模板（根據留言關鍵詞匹配，比隨機模板更有針對性）
+const SMART_REPLIES = [
+  { keywords: ['心情', '感覺', '感受', '情緒', '開心', '難過', '傷心'], 
+    reply: '哈哈，問吾心情？那晚大醉之後，既有歡樂，也有惆悵。月色雖好，卻不見子由，心中自是有憾。但轉念一想，人生聚散無常，何不把握當下？諸位今日可有想見之人乎？' },
+  { keywords: ['做什麼', '幹嘛', '做甚', '做啥', '在做', '當時'], 
+    reply: '那晚啊？吾與幾位好友在密州超然台上飲酒賞月，一喝就喝到大醉！醉後揮毫寫下這闋詞，自己都記不太清了。次日醒來，才發現竟寫出這等佳句。醉酒作詩，亦是人生一大快事！🍶' },
+  { keywords: ['弟弟', '子由', '蘇轍', '兄弟', '手足', '家人', '親人'], 
+    reply: '提起子由……吾已七年未見他了。他在濟南為官，吾在密州，相隔千里。每值中秋，便格外想念。古人云「悲歡離合」，吾深有同感。但正如詞中所言——但願人長久，千里共嬋娟。只要心意相通，共賞此月，便如相聚一般。🌙' },
+  { keywords: ['月亮', '明月', '月亮', '月兒', '月圓'], 
+    reply: '那夜的月啊，真是圓得驚人！明亮如盤，懸於中天，照得庭院如水。吾不禁感慨：月有陰晴圓缺，人有悲歡離合，此事古難全。但正因如此，圓月才更值得珍惜呀！諸位今晚不妨也抬頭看看月亮？' },
+  { keywords: ['為什麼', '為何', '怎麼', '如何', '原因'], 
+    reply: '問得好！人生之事，往往說不清緣由。或許是命運使然，或許是際遇安排。吾被貶至密州，初時心中不忿，漸漸卻也習慣了。逆境之中，反而更能體會生活之美。諸位若遇到困難，也不必氣餒，豁達面對便是！' },
+  { keywords: ['詞', '水調歌頭', '詩', '寫', '作'], 
+    reply: '這闋《水調歌头》是吾醉後即興之作，並未刻意經營。大醉之下，心中所想，筆下自然流出。「明月幾時有」一語，乃是仰天長嘆；「把酒問青天」，更是豪情萬丈。好的作品，往往出自真實的情感呀！' },
+  { keywords: ['崇拜', '喜歡', '偶像', '佩服', '厲害', '棒', '讚'], 
+    reply: '哎呀，諸位過獎了！吾不過是一個愛喝酒、愛吃肉、愛寫字的凡夫罷了。若說有何特別，大概就是不管遭遇何事，總能找到樂趣吧。人生苦短，何不笑著度過？來，與吾共飲一杯！🍶' },
+  { keywords: ['思鄉', '家鄉', '回家', '回去', '故鄉', '四川', '眉山'], 
+    reply: '思鄉之情，吾最是明白。眉山遠在千里之外，每逢節日，便格外想念。但吾想通了——身在何處不重要，心安即是歸處。密州亦有美景美食良友，何必執著於歸鄉呢？諸位若想家了，不妨寫封信回家，或打個電話？' },
+];
+
+// 隨機通用回覆（沒有匹配關鍵詞時使用）
+const GENERIC_REPLIES = [
+  '諸位安好！月色甚美，可願與吾共賞此夜？🌙',
+  '哈哈，甚好甚好！諸位以為如何？',
+  '月圓之夜，思念故人。諸位可有感觸？',
+  '人生如月，有圓有缺。且珍惜當下吧！',
+  '美酒配明月，人生一大樂事也！🍶',
+  '子由若在，定當共飲。諸位有兄弟姊妹否？',
+  '但願人長久，千里共嬋娟。諸位以此句為何解？',
+  '密州雖好，終非故里。諸位可有思鄉之時？',
+  '天上宮闕，瓊樓玉宇，豈如人間自在？',
+  '人有悲歡離合，月有陰晴圓缺，此事自古難全呀。',
+];
+
 async function triggerAI(comment) {
   console.log('🤖 開始呼叫 AI...', comment);
+  
+  // 策略1：嘗試呼叫 Edge Function
   try {
-    // 直接用 fetch 呼叫 Edge Function（比 client.functions.invoke 更可靠）
     const res = await fetch(`${SUPABASE_URL}/functions/v1/su-shi-reply`, {
       method: 'POST',
       headers: {
@@ -802,57 +843,57 @@ async function triggerAI(comment) {
       },
       body: JSON.stringify({ record: comment }),
     });
-
     const data = await res.json();
-    console.log('🤖 AI 回應:', data);
-
-    if (!res.ok || !data.reply) {
-      console.warn('⚠️ AI 未返回有效回覆，使用 fallback:', data);
-      fallback(comment.id);
-    } else {
-      // 成功取得 AI 回复，写入数据库
-      const { error: updErr } = await client.from('comments')
-        .update({ ai_reply: data.reply, replied_at: new Date().toISOString() })
-        .eq('id', comment.id);
-      if (updErr) { 
-        console.error('❌ 寫入 AI 回復失敗:', updErr); 
-        // 即使寫入失敗也嘗試 fallback
-        fallback(comment.id); 
-      }
+    console.log('🤖 Edge Function 回應:', data);
+    
+    if (res.ok && data.reply) {
+      await writeReply(comment.id, data.reply, 'Edge Function');
+      return;
     }
   } catch(e) {
-    console.error('❌ Edge Function 調用異常，使用 fallback:', e);
-    fallback(comment.id);
+    console.warn('⚠️ Edge Function 調用失敗:', e);
   }
+
+  // 策略2：使用智能匹配回覆
+  const smartMatch = getSmartReply(comment.content);
+  if (smartMatch) {
+    console.log('💬 使用智能匹配回覆:', smartMatch);
+    await writeReply(comment.id, smartMatch, 'Smart Match');
+    return;
+  }
+
+  // 策略3：隨機通用回覆
+  const generic = GENERIC_REPLIES[Math.floor(Math.random() * GENERIC_REPLIES.length)];
+  console.log('💬 使用通用回覆:', generic);
+  await writeReply(comment.id, generic, 'Generic Fallback');
 }
 
-const FALLBACKS = [
-  '諸位安好。月色甚美，諸位可願與吾共賞？🌙',
-  '哈哈，甚好甚好！諸位以為如何？',
-  '月圓之夜，思念故人。諸位可有何感觸？',
-  '人生如月，有圓有缺。諸位且珍惜當下。',
-  '美酒配明月，人生一大樂事也！🍶',
-  '子由若在，定當共飲。諸位有兄弟姊妹否？',
-  '但願人長久，千里共嬋娟。諸位以為此句何解？',
-  '密州雖好，終非故鄉。諸位可有思鄉之時？'
-];
+// 根據留言內容智能匹配回覆
+function getSmartReply(content) {
+  const lower = content.toLowerCase();
+  // 找到第一個匹配的關鍵詞組
+  for (const item of SMART_REPLIES) {
+    if (item.keywords.some(kw => lower.includes(kw))) {
+      return item.reply;
+    }
+  }
+  return null;
+}
 
-async function fallback(id) {
-  const reply = FALLBACKS[Math.floor(Math.random()*FALLBACKS.length)];
-  console.log('💬 使用固定回覆模板:', reply);
+// 寫入 AI 回覆到數據庫（三重保證）
+async function writeReply(id, reply, source) {
+  console.log(`✍️ 寫入回覆 [${source}]:`, reply);
   
-  // 嘗試方法 1：用 Supabase client（需要 UPDATE 政策）
+  // 方法1: Supabase client
   try {
     const { error } = await client.from('comments')
       .update({ ai_reply: reply, replied_at: new Date().toISOString() })
       .eq('id', id);
-    if (!error) { console.log('✅ 固定回覆已寫入（方法1）'); return; }
-    console.warn('⚠️ 方法1失敗，嘗試方法2:', error);
-  } catch(e) {
-    console.warn('⚠️ 方法1異常，嘗試方法2:', e);
-  }
+    if (!error) { console.log(`✅ 回覆已寫入 [${source}, 方法1]`); return; }
+    console.warn(`⚠️ 方法1失敗:`, error);
+  } catch(e) { console.warn(`⚠️ 方法1異常:`, e); }
   
-  // 嘗試方法 2：直接 fetch REST API
+  // 方法2: fetch REST API
   try {
     const res = await fetch(`${SUPABASE_URL}/rest/v1/comments?id=eq.${id}`, {
       method: 'PATCH',
@@ -864,11 +905,17 @@ async function fallback(id) {
       },
       body: JSON.stringify({ ai_reply: reply, replied_at: new Date().toISOString() }),
     });
-    if (res.ok) { console.log('✅ 固定回覆已寫入（方法2）'); }
-    else { console.error('❌ 方法2也失敗:', await res.text()); }
-  } catch(e2) {
-    console.error('❌ 兩種寫入方式都失敗:', e2);
-  }
+    if (res.ok) { console.log(`✅ 回覆已寫入 [${source}, 方法2]`); return; }
+    console.error(`❌ 方法2失敗:`, res.status);
+  } catch(e2) { console.error(`❌ 方法2異常:`, e2); }
+  
+  console.error(`❌ 所有寫入方式均失敗！留言ID: ${id}`);
+}
+
+// 舊版 fallback 保留兼容
+async function fallback(id) {
+  const reply = GENERIC_REPLIES[Math.floor(Math.random() * GENERIC_REPLIES.length)];
+  await writeReply(id, reply, 'Legacy Fallback');
 }
 
 // ========== 教師後台 ==========
