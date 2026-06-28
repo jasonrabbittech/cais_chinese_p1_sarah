@@ -725,7 +725,7 @@ function renderComments(comments) {
   const sorted = [...comments].reverse();
 
   el.innerHTML = sorted.map(c => `
-    <div class="comment-card" id="comment-${c.id}">
+    <div class="comment-card" id="comment-${c.id}" data-comment-id="${c.id}">
       <div class="comment-row">
         <span class="comment-bubble-icon">💬</span>
         <div class="c-avatar student">${esc(c.student_name)[0]}</div>
@@ -759,6 +759,22 @@ function subscribeRT() {
   client.channel('comments-channel')
     .on('postgres_changes', { event:'INSERT', schema:'public', table:'comments' }, () => loadComments())
     .on('postgres_changes', { event:'UPDATE', schema:'public', table:'comments' }, () => loadComments())
+    .on('postgres_changes', { event:'DELETE', schema:'public', table:'comments' }, (payload) => {
+      // 立即從 DOM 移除被刪除的留言（高效，不需重載全部）
+      const deletedId = payload.old?.id;
+      if (deletedId) {
+        const el = document.querySelector(`[data-comment-id="${deletedId}"]`);
+        if (el) {
+          el.style.transition = 'opacity 0.3s';
+          el.style.opacity = '0';
+          setTimeout(() => el.remove(), 300);
+        } else {
+          loadComments(); // fallback：找不到元素就重載
+        }
+      } else {
+        loadComments();
+      }
+    })
     .subscribe();
 }
 
