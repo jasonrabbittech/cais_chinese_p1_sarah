@@ -4,11 +4,11 @@
 // 部署：
 //   1. Supabase Dashboard → Edge Functions → su-shi-reply
 //   2. 貼上此程式碼
-//   3. Settings → Secrets 加入 DEEPSEEK_API_KEY
+//   3. Settings → Secrets 加入 DEEPSEEK_API_KEY + SERVICE_ROLE_KEY
 // ============================================================
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
-const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+const SERVICE_ROLE_KEY = Deno.env.get("SERVICE_ROLE_KEY") ?? "";
 const DEEPSEEK_API_KEY = Deno.env.get("DEEPSEEK_API_KEY") ?? "";
 
 // ── 蘇軾系統提示詞 ──
@@ -296,7 +296,7 @@ function corsHeaders(): Record<string, string> {
   return {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Methods": "POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization, apikey",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization, apikey, x-client-info",
   };
 }
 
