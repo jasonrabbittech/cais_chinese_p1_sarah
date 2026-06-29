@@ -172,6 +172,8 @@ Deno.serve(async (req: Request) => {
     const { id, student_name, content } = record;
     console.log(`[su-shi-reply] 📨 收到留言: ${student_name} — ${content}`);
 
+    let aiReply: string;  // ← 移到這裡，在使用前聲明
+
     // 不當內容檢查
     if (containsProfanity(content)) {
       console.warn(`[su-shi-reply] ⚠️ 檢測到不當內容: ${student_name}`);
@@ -191,8 +193,6 @@ Deno.serve(async (req: Request) => {
       (globalThis as any)._dbTemplatesCache = dbTemplates;
       (globalThis as any)._dbTemplatesTime = Date.now();
     }
-
-    let aiReply: string;
 
     // 嘗試 DeepSeek API
     if (DEEPSEEK_API_KEY) {
@@ -289,7 +289,7 @@ async function updateCommentDB(id: string, aiReply: string): Promise<void> {
 
 // ── 工具函數 ──
 function randomFallback(): string {
-  return FALLBACK_REPLIES[Math.floor(Math.random() * FALLBACK_REPLIES.length)];
+  return BULTIN_FALLBACK[Math.floor(Math.random() * BULTIN_FALLBACK.length)];
 }
 
 function corsHeaders(): Record<string, string> {
