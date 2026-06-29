@@ -944,32 +944,18 @@ function getSmartReplyFromDB(content) {
 async function writeReply(id, reply, source) {
   console.log(`✍️ 寫入回覆 [${source}]:`, reply);
   
-  // 方法1: Supabase client
+  // 統一使用 Supabase JS Client（避免 CORS 問題）
   try {
     const { error } = await client.from('comments')
       .update({ ai_reply: reply, replied_at: new Date().toISOString() })
       .eq('id', id);
-    if (!error) { console.log(`✅ 回覆已寫入 [${source}, 方法1]`); return; }
-    console.warn(`⚠️ 方法1失敗:`, error);
-  } catch(e) { console.warn(`⚠️ 方法1異常:`, e); }
-  
-  // 方法2: fetch REST API
-  try {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/comments?id=eq.${id}`, {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        'apikey': SUPABASE_ANON_KEY,
-        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-        'Prefer': 'return=minimal',
-      },
-      body: JSON.stringify({ ai_reply: reply, replied_at: new Date().toISOString() }),
-    });
-    if (res.ok) { console.log(`✅ 回覆已寫入 [${source}, 方法2]`); return; }
-    console.error(`❌ 方法2失敗:`, res.status);
-  } catch(e2) { console.error(`❌ 方法2異常:`, e2); }
-  
-  console.error(`❌ 所有寫入方式均失敗！留言ID: ${id}`);
+    if (!error) { console.log(`✅ 回覆已寫入 [${source}]`); return; }
+    console.error(`❌ 寫入失敗:`, error);
+    alert(`寫入回覆失敗，請重試。錯誤：${error.message}`);
+  } catch(e) {
+    console.error(`❌ 寫入異常:`, e);
+    alert(`寫入回覆時發生錯誤，請重試。`);
+  }
 }
 
 // 舊版 fallback 保留兼容
