@@ -876,24 +876,18 @@ const BUILTIN_SMART = [
 async function triggerAI(comment) {
   console.log('🤖 開始呼叫 AI...', comment);
   
-  // 策略1：嘗試呼叫 Edge Function
+  // 策略1：使用 Supabase Client 呼叫 Edge Function（避免 CORS）
   try {
-    const res = await fetch(`${SUPABASE_URL}/functions/v1/su-shi-reply`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-        'apikey': SUPABASE_ANON_KEY,
-      },
-      body: JSON.stringify({ record: comment }),
+    const { data, error } = await client.functions.invoke('su-shi-reply', {
+      body: { record: comment },
     });
-    const data = await res.json();
-    console.log('🤖 Edge Function 回應:', data);
+    console.log('🤖 Edge Function 回應:', data, error);
     
-    if (res.ok && data.reply) {
+    if (data?.reply) {
       await writeReply(comment.id, data.reply, 'Edge Function');
       return;
     }
+    if (error) console.warn('⚠️ Edge Function 返回錯誤:', error);
   } catch(e) {
     console.warn('⚠️ Edge Function 調用失敗:', e);
   }
