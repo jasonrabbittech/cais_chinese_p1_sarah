@@ -616,9 +616,9 @@
   </div>
 
 <script>
-// ========== Supabase 設定 ==========
-const SUPABASE_URL = 'https://pzatgmavjvrastnumxty.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_j4SGtTlrZz1_B163jw-a7A_IRNSUo7s';
+// ========== Supabase 設定（由 CI/CD 構建時注入）==========
+const SUPABASE_URL = '%%SUPABASE_URL%%';
+const SUPABASE_ANON_KEY = '%%SUPABASE_ANON_KEY%%';
 const { createClient } = supabase;
 const client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
