@@ -616,9 +616,9 @@
   </div>
 
 <script>
-// ========== Supabase 設定 ==========
-const SUPABASE_URL = 'https://pzatgmavjvrastnumxty.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_j4SGtTlrZz1_B163jw-a7A_IRNSUo7s';
+// ========== Supabase 設定（由 CI/CD 構建時注入）==========
+const SUPABASE_URL = '%%SUPABASE_URL%%';
+const SUPABASE_ANON_KEY = '%%SUPABASE_ANON_KEY%%';
 const { createClient } = supabase;
 const client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -640,6 +640,7 @@ window.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('nameModal').style.display = 'none';
     await loadComments();
     subscribeRT();
+    loadTemplatesFromDB(); // 載入 DB 模板
   }
   loadLikeState();
 });
@@ -704,8 +705,7 @@ function submitName() {
   document.getElementById('nameModal').style.display = 'none';
   loadComments();
   subscribeRT();
-  // 載入 DB 模板
-  loadTemplatesFromDB();
+  loadTemplatesFromDB(); // 載入 DB 模板
 }
 
 // ========== 載入 & 渲染留言 ==========
@@ -782,92 +782,40 @@ function subscribeRT() {
 }
 
 // ============================================================
-// 不當內容過濾器（前端攔截 + Edge Function 共用）
-// 覆蓋：中文髒話 / 粵語髒話 / 英文髒話（含變形） / 侮辱性詞彙
+// 不當內容過濾器（前端攔截）
 // ============================================================
 const PROFANITY_WORDS = [
-  // ── 中文髒話 ──
-  "他媽的","他妈的","tmd","TMD","Tmd",
-  "去你媽的","去你妈的","去你的",
-  "滾","滾蛋","滾開","給我滾",
-  "白癡","白痴","笨蛋","蠢貨","弱智",
-  "傻逼","傻比","煞筆","沙雕","傻叉",
-  "靠北","幹","幹你娘","操你","草你","操",
-  "媽逼","妈逼","馬甲線","媽的","妈的",
-  "你媽","你妈","你爹","你爺","尼瑪","尼玛",
-  "死人","去死","殺你","殺了","人渣",
-  "賤人","贱人","婊子","荡妇","贱货",
-  "廢物","废物","垃圾","混蛋","王八蛋",
-  "狗東西","狗日的","畜生","禽獸","禽兽",
-  "豬頭","猪头","豬腦","猪脑",
-  "神經病","精神病","腦殘","脑残","智障",
-  "下流","變態","变态","色狼","流氓",
-  // ── 粵語髒話（香港學生常用）──
-  "屌","屌你","屌嘢","仆街","扑街","pukai","pk",
-  "鳩","鳩你","閪","閪样","粉腸","粉肠",
-  "冚家鏟","冚家铲","含家鏟","含家铲","冚家富",
-  "丟","丟你老母","丟雷樓","丢雷楼",
-  "撚","撚你","撚嘢","7你","7野","7up",
-  "冚","冚你","冚家","冚場",
-  "龍女","龍女服務員","西裝友","鹹濕哥","咸湿",
-  "臭西","臭菲","臭飛","死飛","死閪","死閪",
-  "靠","靠你","靠你老","頂","頂你","頂你個肺",
-  "撚樣","撚七","撚啊","撚啦","撚死",
-  "废青","废柴","废老","廢柴",
-  // ── 英文髒話（完整拼寫）──
-  "fuck","fucking","fucked","fucker","motherfucker",
-  "shit","shitty","bullshit","dumbass",
-  "bitch","bitches","sonofabitch","son of a bitch",
-  "asshole","ass","bastard","damn","dammit",
-  "idiot","stupid","moron","imbecile","dumb",
-  "hate","kill","die","death","suicide",
-  "retard","retarded","cripple","spaz",
-  "nigger","nigga","chink","gook","jap",
-  "faggot","gay","lesbian","dyke","tranny",
-  "slut","whore","prostitute","hooker","hoe",
-  "cock","dick","penis","pussy","cunt",
-  "rape","rapist","molest","molester",
-  "wank","wanker","tosser","jerk","douche",
-  // ── 其他不當內容 ──
-  "色情","賭博","賭錢","毒品","毒藥","毒药",
-  "自殺","自杀","上吊","跳樓","跳楼","割腕",
+  // 中文髒話 / 侮辱性詞彙
+  "髒話","他媽的","他妈的","tmd","TMD",
+  "去你媽的","去你妈的","去你的","滾","滾蛋",
+  "白癡","笨蛋","傻逼","煞筆","沙雕",
+  "靠北","幹","幹你","操你","草你",
+  "死人","去死","殺你","人渣","賤人",
+  "廢物","廢物","垃圾","混蛋","王八蛋",
+  "媽的","妈的","你媽","你妈",
+  // 粵語髒話
+  "冚家鏟","冚家铲","含家鏟","含家铲",
+  "丟","丟你","撚","撚你","冚","冚你",
+  // 英文髒話
+  "fuck","shit","bitch","asshole","bastard","damn",
+  "idiot","stupid","hate","kill","die","retard",
+  "nigger","faggot",
+  // 其他不當內容
+  "色情","賭博","毒品","自殺","自杀",
 ];
-
-// ── 模糊匹配正則：處理符號變形、字母替換 ──
 const PROFANITY_REGEX = [
-  // fuck 變形：f**k, f@@k, fxxk, f!@k, fukk, phuck 等
-  /f[\*@\#\$%!~\^x\s]?u[\*@\#\$%!~\^ck\s]*k/gi,
-  // shit 變形：sh!t, sh1t, shxt, shiiit 等
-  /sh[\*@\#\$%!1iIt\s]+t/gi,
-  // bitch 變形：b!tch, b1tch, biatch 等
-  /b[\*@\#\$%1iI\s]?[\*@\#\$%1iIt\s]*t[\*@\#\$%1iIt\s]*c[\*@\#\$%hH\s]/gi,
-  // ass 變形：a$$, @ss, a55 等
-  /a[\*@\#$5sS\s]{2}/gi,
-  // damn 變形：d@mn, dmn, damnn 等
-  /d[a@][\*#\$\smMn]+/gi,
-  // kill/die 相關模糊
-  /k[i1!][\s]*l[\s]*l/gi,
-  // 侮辱性描述（醜/胖/矮等）
-  /(很|超|太|好|真|非常|特別|極|绝|最)\s*(醜|丑|胖|肥|矮|搓|窮|穷|笨|蠢|傻|呆|怪|噁|恶心|討厭|讨厌|可惡|可恶|煩|烦|烂|爛)/gi,
-  // 直接侮辱蘇軾/人物
-  /(蘇軾|蘇東坡|蘇|东坡|子由|苏轼|老师|teacher)\s*(是|真|好|超|很|太|最|極|超級|超级)\s*(醜|丑|胖|肥|矮|搓|窮|穷|笨|蠢|傻|呆|怪|噁|恶心|討厭|讨厌|可惡|可恶|煩|烦|烂|爛|垃圾|廢物|废物|白癡|白痴|傻逼|煞筆|沙雕|無聊|无聊|無趣|无趣|差勁|差劲|爛|爛人|爛鬼|廢|廢柴|废柴|死|死佬|死人|死鬼)/gi,
-  // 單字髒話連續使用（如「靠靠靠」「屌屌屌」）
-  /(靠{2,}|屌{2,}|幹{2,}|操{2,}|滾{2,}|笨{2,}|蠢{2,}|傻{2,})/gi,
+  /f\s*u\s*c\s*k/gi,
+  /s\s*h\s*i\s*t/gi,
+  /b\s*i\s*t\s*c\s*h/gi,
 ];
 
 function containsProfanity(text) {
-  if (!text) return false;
   const lower = text.toLowerCase();
-  // 1. 精確關鍵詞匹配
   for (const word of PROFANITY_WORDS) {
     if (lower.includes(word.toLowerCase())) return true;
   }
-  // 2. 正則模糊匹配（符號變形、侮辱性描述等）
   for (const re of PROFANITY_REGEX) {
-    if (re.test(text)) {
-      re.lastIndex = 0; // 重置正則狀態
-      return true;
-    }
+    if (re.test(text)) return true;
   }
   return false;
 }
@@ -911,28 +859,19 @@ const SU_SHI_PROMPT_CONTEXT = `你是宋代文人蘇軾（東坡居士）。
 背景：1076年中秋在密州，大醉後寫下《水調歌頭·明月幾時有》，思念七年未見的子由。
 回覆風格：繁體中文、文言白話夾雜、50-150字、適當引用詩詞、像親切長輩。`;
 
-// 智能回覆模板（根據留言關鍵詞匹配，比隨機模板更有針對性）
-// SMART_REPLIES 已移至 DB（reply_templates 表）
-, 
-    reply: '哈哈，問吾心情？那晚大醉之後，既有歡樂，也有惆悵。月色雖好，卻不見子由，心中自是有憾。但轉念一想，人生聚散無常，何不把握當下？諸位今日可有想見之人乎？' },
-  { keywords: ['做什麼', '幹嘛', '做甚', '做啥', '在做', '當時'], 
-    reply: '那晚啊？吾與幾位好友在密州超然台上飲酒賞月，一喝就喝到大醉！醉後揮毫寫下這闋詞，自己都記不太清了。次日醒來，才發現竟寫出這等佳句。醉酒作詩，亦是人生一大快事！🍶' },
-  { keywords: ['弟弟', '子由', '蘇轍', '兄弟', '手足', '家人', '親人'], 
-    reply: '提起子由……吾已七年未見他了。他在濟南為官，吾在密州，相隔千里。每值中秋，便格外想念。古人云「悲歡離合」，吾深有同感。但正如詞中所言——但願人長久，千里共嬋娟。只要心意相通，共賞此月，便如相聚一般。🌙' },
-  { keywords: ['月亮', '明月', '月亮', '月兒', '月圓'], 
-    reply: '那夜的月啊，真是圓得驚人！明亮如盤，懸於中天，照得庭院如水。吾不禁感慨：月有陰晴圓缺，人有悲歡離合，此事古難全。但正因如此，圓月才更值得珍惜呀！諸位今晚不妨也抬頭看看月亮？' },
-  { keywords: ['為什麼', '為何', '怎麼', '如何', '原因'], 
-    reply: '問得好！人生之事，往往說不清緣由。或許是命運使然，或許是際遇安排。吾被貶至密州，初時心中不忿，漸漸卻也習慣了。逆境之中，反而更能體會生活之美。諸位若遇到困難，也不必氣餒，豁達面對便是！' },
-  { keywords: ['詞', '水調歌頭', '詩', '寫', '作'], 
-    reply: '這闋《水調歌头》是吾醉後即興之作，並未刻意經營。大醉之下，心中所想，筆下自然流出。「明月幾時有」一語，乃是仰天長嘆；「把酒問青天」，更是豪情萬丈。好的作品，往往出自真實的情感呀！' },
-  { keywords: ['崇拜', '喜歡', '偶像', '佩服', '厲害', '棒', '讚'], 
-    reply: '哎呀，諸位過獎了！吾不過是一個愛喝酒、愛吃肉、愛寫字的凡夫罷了。若說有何特別，大概就是不管遭遇何事，總能找到樂趣吧。人生苦短，何不笑著度過？來，與吾共飲一杯！🍶' },
-  { keywords: ['思鄉', '家鄉', '回家', '回去', '故鄉', '四川', '眉山'], 
-    reply: '思鄉之情，吾最是明白。眉山遠在千里之外，每逢節日，便格外想念。但吾想通了——身在何處不重要，心安即是歸處。密州亦有美景美食良友，何必執著於歸鄉呢？諸位若想家了，不妨寫封信回家，或打個電話？' },
+// 智能回覆模板已移至 DB（reply_templates 表）
+// 前端會透過 loadTemplatesFromDB() 載入並快取在 dbSmartReplies 和 dbGenericReplies
+// 內建最終 fallback（DB 和 API 都失敗時）
+const BUILTIN_GENERIC = [
+  '諸位安好！月色甚美，可願與吾共賞此夜？🌙',
+  '哈哈，甚好甚好！諸位以為如何？',
+  '月圓之夜，思念故人。諸位可有感觸？',
+  '人生如月，有圓有缺。且珍惜當下吧！',
 ];
-
-// 隨機通用回覆（沒有匹配關鍵詞時使用）
-// GENERIC_REPLIES 已移至 DB（reply_templates 表）
+const BUILTIN_SMART = [
+  { keywords: ['心情', '感覺'], reply: '哈哈，老夫近日尚可。諸位近況如何？' },
+  { keywords: ['做什麼', '幹嘛'], reply: '方才獨酌至微醺，忽見明月，便想起子由。' },
+];
 
 async function triggerAI(comment) {
   console.log('🤖 開始呼叫 AI...', comment);
@@ -960,15 +899,11 @@ async function triggerAI(comment) {
   }
 
   // 策略2：使用 DB 智能匹配回覆
-  if (dbSmartReplies.length > 0) {
-    const lower = comment.content.toLowerCase();
-    for (const item of dbSmartReplies) {
-      if (item.keywords.some(kw => lower.includes(kw))) {
-        console.log('💬 使用 DB 智能匹配回覆:', item.reply);
-        await writeReply(comment.id, item.reply, 'DB Smart Match');
-        return;
-      }
-    }
+  const smartMatch = getSmartReplyFromDB(comment.content);
+  if (smartMatch) {
+    console.log('💬 使用 DB 智能匹配回覆:', smartMatch);
+    await writeReply(comment.id, smartMatch, 'DB Smart Match');
+    return;
   }
 
   // 策略3：隨機 DB 通用回覆
@@ -980,19 +915,24 @@ async function triggerAI(comment) {
   }
 
   // 最終 fallback：內建模板
-  const fallback = [
-    '諸位安好！月色甚美，諸位可願與吾共賞這輪明月？',
-    '哈哈，甚好甚好！諸位以為此月如何？',
-    '月圓之夜，頗念子由。諸位可有思念之人？',
-  ][Math.floor(Math.random()*3)];
+  const fallback = BUILTIN_GENERIC[Math.floor(Math.random() * BUILTIN_GENERIC.length)];
+  console.log('💬 使用內建通用回覆:', fallback);
   await writeReply(comment.id, fallback, 'Builtin Fallback');
 }
 
-// 根據留言內容智能匹配回覆
-function getSmartReply(content) {
+// 根據留言內容智能匹配回覆（從 DB 模板）
+function getSmartReplyFromDB(content) {
   const lower = content.toLowerCase();
-  // 找到第一個匹配的關鍵詞組
-  for (const item of SMART_REPLIES) {
+  // 先試 DB 模板
+  if (dbSmartReplies.length > 0) {
+    for (const item of dbSmartReplies) {
+      if (item.keywords.some(kw => lower.includes(kw))) {
+        return item.reply;
+      }
+    }
+  }
+  // 再試內建模板
+  for (const item of BUILTIN_SMART) {
     if (item.keywords.some(kw => lower.includes(kw))) {
       return item.reply;
     }
@@ -1094,9 +1034,66 @@ async function loadTStats() {
 }
 
 async function delOne(id) { if(!confirm('確定刪除？'))return; await client.from('comments').delete().eq('id',id); loadTComments(); }
+async function deleteAll() { if(!confirm('確定刪除全部？不可復原！'))return; await client.from('comments').delete().neq('id','00000000-0000-0000-0000-000000000000'); loadTComments(); }
+
+function exportCSV() {
+  client.from('comments').select('*').order('created_at',{ascending:true}).then(({data,err})=>{
+    if(err){alert('匯出失敗');return;}
+    const csv=[['時間','學生','留言','AI回覆','回覆時間'],...data.map(d=>[
+      fmtT(d.created_at),d.student_name,d.content,d.ai_reply||'',d.replied_at?fmtT(d.replied_at):''
+    ])].map(r=>r.map(c=>`"${c}"`).join(',')).join('\n');
+    const blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8;'});
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+    a.download=`蘇軾朋友圈_${new Date().toISOString().slice(0,10)}.csv`; a.click(); URL.revokeObjectURL(a.href);
+  });
+}
 
 // ========== 編輯 AI 回覆 ==========
 let originalAIReply = {};
+
+function editAIReply(id) {
+  const textSpan = document.getElementById('ai-reply-text-' + id);
+  if (!textSpan) return;
+  originalAIReply[id] = textSpan.textContent;
+  textSpan.outerHTML = '<textarea id="ai-reply-edit-' + id + '" style="width:90%;min-height:40px;font-size:12px;color:#576b95;background:#f0f4ff;padding:4px;border-radius:4px;border:1px solid #576b95;">' + esc(originalAIReply[id]) + '</textarea>';
+  document.getElementById('ai-save-btn-' + id).style.display = 'inline-block';
+  document.getElementById('ai-cancel-btn-' + id).style.display = 'inline-block';
+  event.target.style.display = 'none';
+}
+
+async function saveAIReply(id) {
+  const textarea = document.getElementById('ai-reply-edit-' + id);
+  if (!textarea) return;
+  const newReply = textarea.value.trim();
+  if (!newReply) { alert('回覆內容不能為空'); return; }
+  try {
+    const { error } = await client.from('comments').update({ ai_reply: newReply, replied_at: new Date().toISOString() }).eq('id', id);
+    if (error) { alert('保存失敗: ' + error.message); return; }
+    const container = textarea.parentNode;
+    container.innerHTML = '💬 <span id="ai-reply-text-' + id + '">' + esc(newReply) + '</span> <button class="t-btn" style="font-size:11px;padding:2px 8px;" onclick="editAIReply(\'' + id + '\')">編輯</button> <button class="t-btn" style="font-size:11px;padding:2px 8px;display:none;" id="ai-save-btn-' + id + '" onclick="saveAIReply(\'' + id + '\')">保存</button> <button class="t-btn" style="font-size:11px;padding:2px 8px;display:none;" id="ai-cancel-btn-' + id + '" onclick="cancelAIReply(\'' + id + '\')">取消</button>';
+  } catch(e) { alert('保存失敗'); }
+}
+
+function cancelAIReply(id) {
+  const textSpan = document.getElementById('ai-reply-text-' + id);
+  const textarea = document.getElementById('ai-reply-edit-' + id);
+  const container = textSpan ? textSpan.parentNode : (textarea ? textarea.parentNode : null);
+  if (!container) return;
+  container.innerHTML = '💬 <span id="ai-reply-text-' + id + '">' + esc(originalAIReply[id] || '') + '</span> <button class="t-btn" style="font-size:11px;padding:2px 8px;" onclick="editAIReply(\'' + id + '\')">編輯</button> <button class="t-btn" style="font-size:11px;padding:2px 8px;display:none;" id="ai-save-btn-' + id + '" onclick="saveAIReply(\'' + id + '\')">保存</button> <button class="t-btn" style="font-size:11px;padding:2px 8px;display:none;" id="ai-cancel-btn-' + id + '" onclick="cancelAIReply(\'' + id + '\')">取消</button>';
+}
+
+// ========== 工具函數 ==========
+function esc(t){const d=document.createElement('div'); d.textContent=t; return d.innerHTML;}
+function fmtT(iso){
+  if(!iso)return '';
+  const d=new Date(iso);
+  const y=d.getFullYear();
+  const M=String(d.getMonth()+1).padStart(2,'0');
+  const D=String(d.getDate()).padStart(2,'0');
+  const h=String(d.getHours()).padStart(2,'0');
+  const m=String(d.getMinutes()).padStart(2,'0');
+  return y+'-'+M+'-'+D+' '+h+':'+m;
+}
 
 // ========== DB 模板快取 ==========
 let dbGenericReplies = [];
@@ -1108,47 +1105,9 @@ async function loadTemplatesFromDB() {
     if (error) { console.warn('⚠️ 讀取模板失敗，使用內建模板'); return; }
     dbGenericReplies = (data || []).filter(t => t.type === 'generic').map(t => t.reply);
     dbSmartReplies = (data || []).filter(t => t.type === 'smart').map(t => ({ keywords: (t.keyword||'').split(/[,，]/).map(k=>k.trim()).filter(Boolean), reply: t.reply }));
-    console.log(`✅ 已載入模板：固定 ${dbGenericReplies.length} 條，智能 ${dbSmartReplies.length} 條`);
+    console.log('✅ 已載入模板：固定 ' + dbGenericReplies.length + ' 條，智能 ' + dbSmartReplies.length + ' 條');
   } catch(e) { console.warn('⚠️ 讀取模板異常', e); }
 }
-
-
-function editAIReply(id) {
-  const textSpan = document.getElementById(`ai-reply-text-${id}`);
-  const saveBtn = document.getElementById(`ai-save-btn-${id}`);
-  const cancelBtn = document.getElementById(`ai-cancel-btn-${id}`);
-  if (!textSpan) return;
-  originalAIReply[id] = textSpan.textContent;
-  textSpan.outerHTML = `<textarea id="ai-reply-edit-${id}" style="width:90%;min-height:40px;font-size:12px;color:#576b95;background:#f0f4ff;padding:4px;border-radius:4px;border:1px solid #576b95;">${esc(originalAIReply[id])}</textarea>`;
-  saveBtn.style.display = 'inline-block';
-  cancelBtn.style.display = 'inline-block';
-  event.target.style.display = 'none';
-}
-
-async function saveAIReply(id) {
-  const textarea = document.getElementById(`ai-reply-edit-${id}`);
-  if (!textarea) return;
-  const newReply = textarea.value.trim();
-  if (!newReply) { alert('回覆內容不能為空'); return; }
-  try {
-    const { error } = await client.from('comments').update({ ai_reply: newReply }).eq('id', id);
-    if (error) { alert('保存失敗: ' + error.message); return; }
-    // 更新顯示
-    const container = textarea.parentNode;
-    container.innerHTML = `💬 <span id="ai-reply-text-${id}">${esc(newReply)}</span> <button class="t-btn" style="font-size:11px;padding:2px 8px;" onclick="editAIReply('${id}')">編輯</button> <button class="t-btn" style="font-size:11px;padding:2px 8px;display:none;" id="ai-save-btn-${id}" onclick="saveAIReply('${id}')">保存</button> <button class="t-btn" style="font-size:11px;padding:2px 8px;display:none;" id="ai-cancel-btn-${id}" onclick="cancelAIReply('${id}')">取消</button>`;
-  } catch(e) { alert('保存失敗'); }
-}
-
-function cancelAIReply(id) {
-  const container = document.getElementById(`ai-reply-text-${id}`)?.parentNode;
-  if (!container) container = document.getElementById(`ai-reply-edit-${id}`)?.parentNode;
-  if (!container) return;
-  container.innerHTML = `💬 <span id="ai-reply-text-${id}">${esc(originalAIReply[id] || '')}</span> <button class="t-btn" style="font-size:11px;padding:2px 8px;" onclick="editAIReply('${id}')">編輯</button> <button class="t-btn" style="font-size:11px;padding:2px 8px;display:none;" id="ai-save-btn-${id}" onclick="saveAIReply('${id}')">保存</button> <button class="t-btn" style="font-size:11px;padding:2px 8px;display:none;" id="ai-cancel-btn-${id}" onclick="cancelAIReply('${id}')">取消</button>`;
-}
-
-
-async function deleteAll() { if(!confirm('確定刪除全部？不可復原！'))return; await client.from('comments').delete().neq('id','00000000-0000-0000-0000-000000000000'); loadTComments(); }
-
 
 // ========== 回覆模板管理 ==========
 let allTemplates = [];
@@ -1162,53 +1121,13 @@ async function loadTTemplates() {
     allTemplates = data || [];
     const generic = allTemplates.filter(t => t.type === 'generic');
     const smart = allTemplates.filter(t => t.type === 'smart');
-    c.innerHTML = `
-      <div style="margin-bottom:12px;">
-        <button class="t-btn" onclick="showAddTemplate()">➕ 新增模板</button>
-      </div>
-      <h3 style="margin:12px 0 8px;font-size:14px;">📋 固定回覆模板（API 不可用時隨機選用）</h3>
-      <div id="genericList">${generic.map(t => tplItem(t)).join('')}</div>
-      <h3 style="margin:18px 0 8px;font-size:14px;">🧠 智能關鍵詞模板</h3>
-      <div id="smartList">${smart.map(t => tplItem(t)).join('')}</div>`;
+    c.innerHTML = '<div style="margin-bottom:12px;"><button class="t-btn" onclick="showAddTemplate()">➕ 新增模板</button></div><h3 style="margin:12px 0 8px;font-size:14px;">📋 固定回覆模板（API 不可用時隨機選用）</h3><div id="genericList">' + generic.map(t => '<div id="tpl-' + t.id + '" style="padding:8px 10px;border-bottom:1px solid #f0f0f0;font-size:13px;"><div style="display:flex;justify-content:space-between;align-items:flex-start;"><div style="flex:1;white-space:pre-wrap;">' + esc(t.reply) + '</div><div style="flex-shrink:0;margin-left:8px;"><button class="t-btn" style="font-size:11px;padding:2px 8px;" onclick="editTemplate(\'' + t.id + '\')">編輯</button> <button class="t-btn danger" style="font-size:11px;padding:2px 8px;" onclick="deleteTemplate(\'' + t.id + '\')">刪除</button></div></div></div>').join('') + '</div><h3 style="margin:18px 0 8px;font-size:14px;">🧠 智能關鍵詞模板</h3><div id="smartList">' + smart.map(t => '<div id="tpl-' + t.id + '" style="padding:8px 10px;border-bottom:1px solid #f0f0f0;font-size:13px;"><div style="display:flex;justify-content:space-between;align-items:flex-start;"><div style="flex:1;white-space:pre-wrap;">' + esc(t.reply) + '<br><span style="color:#999;font-size:11px;">關鍵詞：' + esc(t.keyword || '') + '</span></div><div style="flex-shrink:0;margin-left:8px;"><button class="t-btn" style="font-size:11px;padding:2px 8px;" onclick="editTemplate(\'' + t.id + '\')">編輯</button> <button class="t-btn danger" style="font-size:11px;padding:2px 8px;" onclick="deleteTemplate(\'' + t.id + '\')">刪除</button></div></div></div>').join('') + '</div>';
   } catch(e) { c.innerHTML = '<p>讀取失敗</p>'; }
-}
-
-function tplItem(t) {
-  const kwHint = t.type === 'smart' ? `<br><span style="color:#999;font-size:11px;">關鍵詞：${esc(t.keyword || '')}</span>` : '';
-  return `<div id="tpl-${t.id}" style="padding:8px 10px;border-bottom:1px solid #f0f0f0;font-size:13px;">
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;">
-      <div style="flex:1;white-space:pre-wrap;">${esc(t.reply)}${kwHint}</div>
-      <div style="flex-shrink:0;margin-left:8px;">
-        <button class="t-btn" style="font-size:11px;padding:2px 8px;" onclick="editTemplate('${t.id}')">編輯</button>
-        <button class="t-btn danger" style="font-size:11px;padding:2px 8px;" onclick="deleteTemplate('${t.id}')">刪除</button>
-      </div>
-    </div>
-  </div>`;
 }
 
 function showAddTemplate() {
   const c = document.getElementById('teacherContent');
-  const insertHTML = `
-    <div id="addTplForm" style="background:#f9f9f9;padding:12px;border-radius:8px;margin-bottom:12px;">
-      <h4 style="margin:0 0 8px;">新增模板</h4>
-      <div style="margin-bottom:6px;">
-        <label style="font-size:12px;">類型：</label>
-        <select id="tplType" onchange="toggleKeyword()">
-          <option value="generic">固定回覆</option>
-          <option value="smart">智能關鍵詞</option>
-        </select>
-      </div>
-      <div id="keywordField" style="margin-bottom:6px;display:none;">
-        <label style="font-size:12px;">觸發關鍵詞（逗號分隔）：</label>
-        <input type="text" id="tplKeyword" style="width:90%;padding:4px;font-size:12px;" placeholder="例如：心情,感覺,最近">
-      </div>
-      <div style="margin-bottom:6px;">
-        <label style="font-size:12px;">回覆內容：</label>
-        <textarea id="tplReply" style="width:90%;min-height:50px;padding:4px;font-size:12px;"></textarea>
-      </div>
-      <button class="t-btn" onclick="submitAddTemplate()">保存</button>
-      <button class="t-btn" onclick="document.getElementById('addTplForm').remove()">取消</button>
-    </div>`;
+  const insertHTML = '<div id="addTplForm" style="background:#f9f9f9;padding:12px;border-radius:8px;margin-bottom:12px;"><h4 style="margin:0 0 8px;">新增模板</h4><div style="margin-bottom:6px;"><label style="font-size:12px;">類型：</label><select id="tplType" onchange="toggleKeyword()"><option value="generic">固定回覆</option><option value="smart">智能關鍵詞</option></select></div><div id="keywordField" style="margin-bottom:6px;display:none;"><label style="font-size:12px;">觸發關鍵詞（逗號分隔）：</label><input type="text" id="tplKeyword" style="width:90%;padding:4px;font-size:12px;" placeholder="例如：心情,感覺,最近"></div><div style="margin-bottom:6px;"><label style="font-size:12px;">回覆內容：</label><textarea id="tplReply" style="width:90%;min-height:50px;padding:4px;font-size:12px;"></textarea></div><button class="t-btn" onclick="submitAddTemplate()">保存</button> <button class="t-btn" onclick="document.getElementById(\'addTplForm\').remove()">取消</button></div>';
   c.insertAdjacentHTML('afterbegin', insertHTML);
 }
 
@@ -1223,7 +1142,7 @@ async function submitAddTemplate() {
   const keyword = type === 'smart' ? document.getElementById('tplKeyword').value.trim() : null;
   if (!reply) { alert('請填寫回覆內容'); return; }
   try {
-    const { error } = await client.from('reply_templates').insert([{ type, keyword, reply }]);
+    const { error } = await client.from('reply_templates').insert([{ type: type, keyword: keyword, reply: reply }]);
     if (error) { alert('新增失敗：' + error.message); return; }
     loadTTemplates();
   } catch(e) { alert('新增失敗'); }
@@ -1255,31 +1174,6 @@ async function deleteTemplate(id) {
   } catch(e) { alert('刪除失敗'); }
 }
 
-
-function exportCSV() {
-  client.from('comments').select('*').order('created_at',{ascending:true}).then(({data,err})=>{
-    if(err){alert('匯出失敗');return;}
-    const csv=[['時間','學生','留言','AI回覆','回覆時間'],...data.map(d=>[
-      fmtT(d.created_at),d.student_name,d.content,d.ai_reply||'',d.replied_at?fmtT(d.replied_at):''
-    ])].map(r=>r.map(c=>`"${c}"`).join(',')).join('\n');
-    const blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8;'});
-    const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
-    a.download=`蘇軾朋友圈_${new Date().toISOString().slice(0,10)}.csv`; a.click(); URL.revokeObjectURL(a.href);
-  });
-}
-
-// ========== 工具函數 ==========
-function esc(t){const d=document.createElement('div'); d.textContent=t; return d.innerHTML;}
-function fmtT(iso){
-  if(!iso)return '';
-  const d=new Date(iso);
-  const y=d.getFullYear();
-  const M=String(d.getMonth()+1).padStart(2,'0');
-  const D=String(d.getDate()).padStart(2,'0');
-  const h=String(d.getHours()).padStart(2,'0');
-  const m=String(d.getMinutes()).padStart(2,'0');
-  return y+'-'+M+'-'+D+' '+h+':'+m;
-}
 function focusInput(){document.getElementById('commentInput').focus(); closePopup();}
 </script>
 </body>
