@@ -4,6 +4,10 @@ on:
   pull_request:
     branches: [main, testing]
 
+permissions:
+  pull-requests: write
+  contents: read
+
 jobs:
   preview:
     runs-on: ubuntu-latest
@@ -28,7 +32,7 @@ jobs:
             ### 合并后
             - 合并到 \`testing\` → 自动部署到 [测试环境](https://jasonrabbittech.github.io/cais_chinese_p1_sarah/)
             - 合并到 \`main\` → 自动部署到生产环境`;
-            
+
             github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
