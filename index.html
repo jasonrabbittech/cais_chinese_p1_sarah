@@ -497,6 +497,14 @@
 
     .empty-hint { text-align: center; padding: 36px 16px; color: #bbb; font-size: 14px; }
     .empty-hint .emoji { font-size: 40px; margin-bottom: 10px; display: block; }
+  /* AI 思考中動畫 */
+  .ai-thinking {
+    animation: thinking 1.5s infinite;
+  }
+  @keyframes thinking {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
   </style>
   
   <!-- Toast 通知 -->
@@ -882,7 +890,17 @@ async function submitComment() {
     // 立即刷新評論列表（確保新留言顯示）
     loadComments();
 
-    if (data && data[0]) triggerAI(data[0]);
+    if (data && data[0]) { 
+      // 顯示 AI 思考中提示
+      const thinkingId = 'thinking-' + data[0].id;
+      const thinkingDiv = document.createElement('div');
+      thinkingDiv.id = thinkingId;
+      thinkingDiv.className = 'ai-thinking';
+      thinkingDiv.innerHTML = '<span class="thinking-dot">💭</span> 诗人正在思考中...';
+      thinkingDiv.style.cssText = 'color:#999;font-size:12px;margin-top:4px;font-style:italic;';
+      document.getElementById('commentsList').appendChild(thinkingDiv);
+      triggerAI(data[0]);
+    }
   } catch(e) {
     console.error(e); showToast('網絡錯誤，請檢查連接', 'error'); btn.disabled=false; btn.textContent='發送';
   }
