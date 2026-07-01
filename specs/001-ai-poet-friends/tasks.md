@@ -455,7 +455,7 @@ Tasks are organized by **User Story** (from `spec.md`) to enable independent imp
 - **File Path**: `index.html` (future enhancement)
 - **FR Mapping**: FR-010
 
-**Status**: ⚪ **Not Started** (Phase 2 feature)
+**Status**: ✅ **Completed** (implemented in `index.html` lines 1040-1072)
 
 ---
 
@@ -818,4 +818,146 @@ After this `tasks.md` is finalized:
 
 ---
 
-**End of Tasks (v2.0)**
+## Phase 12: Phase 2 Backlog (Technical Debt)
+
+**Goal**: Address Phase 1 simplifications before scaling to multiple classes.
+
+**Precondition**: Phase 1 complete (all P1 tasks done, UAT passed).
+
+---
+
+### Task T024 [P1]: Persist Likes to Database
+
+- **Priority**: P1 (Must)
+- **Dependencies**: None
+- **Estimated Effort**: 2 hours
+- **Description**: 
+  - Create `likes` table in Supabase:
+    ```sql
+    CREATE TABLE likes (
+      id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+      post_id UUID,
+      student_name TEXT NOT NULL,
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      UNIQUE(post_id, student_name)
+    );
+    ```
+  - Update frontend to use DB for like state (not localStorage)
+  - Implement real-time like count updates (Supabase Realtime)
+- **Acceptance Criteria**:
+  - [ ] Like state persists across page refreshes
+  - [ ] Like count is accurate for all users (real-time)
+  - [ ] One like per student per post (enforced by DB constraint)
+- **File Path**: `supabase/migrations/002_add_likes_table.sql`, `index.html`
+- **FR Mapping**: FR-003 (fix)
+
+**Status**: ⚪ **Not Started** (Phase 2 backlog)
+
+---
+
+### Task T025 [P1]: Move Teacher Password to Edge Function
+
+- **Priority**: P1 (Must)
+- **Dependencies**: None
+- **Estimated Effort**: 3 hours
+- **Description**: 
+  - Create `/verify-teacher` Edge Function
+  - Move password validation from frontend to Edge Function
+  - Store password in Supabase Secrets (not in code)
+  - Update frontend to call Edge Function for login
+- **Acceptance Criteria**:
+  - [ ] Password not exposed in frontend code
+  - [ ] Password stored in Supabase Secrets
+  - [ ] Login flow works correctly
+- **File Path**: `supabase/functions/verify-teacher/index.ts`, `index.html`
+- **Constitution Mapping**: Principle IV (Security by Default)
+
+**Status**: ⚪ **Not Started** (Phase 2 backlog)
+
+---
+
+### Task T026 [P2]: Implement Soft Delete for Comments
+
+- **Priority**: P2 (Should)
+- **Dependencies**: None
+- **Estimated Effort**: 1 hour
+- **Description**: 
+  - Add `is_deleted` field to `comments` table
+  - Update delete logic to set `is_deleted = TRUE` (not hard delete)
+  - Update admin view to show deleted comments (marked as deleted)
+  - Hide deleted comments from student view
+- **Acceptance Criteria**:
+  - [ ] Deleted comments are soft-deleted (preserved in DB)
+  - [ ] Deleted comments marked as "deleted" in admin view
+  - [ ] Deleted comments hidden from student view
+- **File Path**: `supabase/migrations/003_add_is_deleted_to_comments.sql`, `index.html`
+- **FR Mapping**: FR-007 (fix)
+
+**Status**: ⚪ **Not Started** (Phase 2 backlog)
+
+---
+
+### Task T027 [P2]: Add Analytics Logging
+
+- **Priority**: P2 (Should)
+- **Dependencies**: None
+- **Estimated Effort**: 2 hours
+- **Description**: 
+  - Create `analytics_events` table:
+    ```sql
+    CREATE TABLE analytics_events (
+      id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+      event_type TEXT NOT NULL, -- 'comment', 'like', 'ai_reply'
+      student_name TEXT,
+      metadata JSONB,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );
+    ```
+  - Log events from frontend (comment submit, like, AI reply received)
+  - Add analytics dashboard in admin panel (SC-001, SC-002 tracking)
+- **Acceptance Criteria**:
+  - [ ] Events logged to DB
+  - [ ] Analytics dashboard shows engagement metrics
+  - [ ] Can export analytics report (CSV)
+- **File Path**: `supabase/migrations/004_add_analytics_events.sql`, `index.html`
+- **FR Mapping**: SC-001, SC-002 (fix)
+
+**Status**: ⚪ **Not Started** (Phase 2 backlog)
+
+---
+
+### Task T028 [P2]: Implement AI Reply Editing (FR-010)
+
+- **Priority**: P2 (Should)
+- **Dependencies**: T014
+- **Estimated Effort**: 2 hours
+- **Description**: 
+  - Allow teacher to edit AI reply for specific comment
+  - Update `comments.ai_reply` field
+  - Mark as "teacher-modified" (add `is_modified_by_teacher` field)
+  - Students see edited reply (no indication of modification)
+- **Acceptance Criteria**:
+  - [ ] Teacher can edit AI reply in admin panel
+  - [ ] Student sees edited reply
+  - [ ] Edited replies marked as "teacher-modified" in admin view
+- **File Path**: `index.html`
+- **FR Mapping**: FR-010 (fix)
+
+**Status**: ⚪ **Not Started** (Phase 2 backlog, originally T015)
+
+---
+
+## Updated Progress Tracking (with Phase 2 Backlog)
+
+| Task ID | Task Name | Status | Phase |
+|---------|-----------|--------|-------|
+| T001-T023 | (Previous tasks) | (See above) | Phase 1 |
+| **T024** | **Persist Likes to Database** | ⚪ Todo | **Phase 2** |
+| **T025** | **Move Teacher Password to Edge Function** | ⚪ Todo | **Phase 2** |
+| **T026** | **Implement Soft Delete** | ⚪ Todo | **Phase 2** |
+| **T027** | **Add Analytics Logging** | ⚪ Todo | **Phase 2** |
+| **T028** | **Implement AI Reply Editing** | ⚪ Todo | **Phase 2** |
+
+---
+
+**End of Tasks (v2.1)**

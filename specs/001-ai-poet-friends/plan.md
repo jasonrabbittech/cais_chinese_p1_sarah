@@ -468,4 +468,20 @@ After this plan is updated:
 
 ---
 
-**End of Plan (v2.0)**
+## Technical Debt / 技术债务
+
+The following items are **intentionally simplified in Phase 1** and must be addressed in Phase 2 before scaling.
+
+| Debt Item | Priority | Effort | Risk if Not Fixed | Phase 2 Task |
+|-----------|----------|--------|-------------------|--------------|
+| **Likes not persisted** | P1 | 2 hours | Students confused why likes disappear on refresh | Create `likes` table, update T005 |
+| **Teacher password hardcoded** | P1 | 3 hours | Password exposed in frontend code (security risk) | Move to Edge Function or Supabase Auth |
+| **Hard delete (not soft)** | P2 | 1 hour | Cannot audit deleted comments | Add `is_deleted` field, update T011 |
+| **No analytics logging** | P2 | 2 hours | Cannot measure SC-001, SC-002 automatically | Add `analytics_events` table |
+| **FR-010 not implemented** | P2 | 2 hours | Teachers cannot edit AI replies | Implement T015 |
+
+**Decision**: These items are **acceptable for Phase 1 MVP** (single class, single teacher, <50 students). **Must be fixed before Phase 2** (multiple classes, multiple teachers, >100 students).
+
+---
+
+**End of Plan (v2.1)**

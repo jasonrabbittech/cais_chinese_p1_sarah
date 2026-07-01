@@ -517,6 +517,23 @@ The following items are explicitly **out of scope** for Phase 1 and will be addr
 
 ---
 
+## Phase 1 Simplifications / 一期简化
+
+The following items are **intentionally simplified in Phase 1** due to MVP constraints. These are **known technical debt** items that will be addressed in Phase 2.
+
+| Item | Spec Requirement | Phase 1 Implementation | Rationale | Phase 2 Fix |
+|------|------------------|-------------------------|-----------|-------------|
+| **Likes Persistence** | FR-003: Like count updates in real-time for all users | localStorage only (per-user, not shared) | Simplifying MVP — likes are nice-to-have | Create `likes` table in Supabase, implement real-time like count |
+| **Teacher Password** | IV. Security by Default: No secrets in frontend | Hardcoded in `index.html` (password: `cais2024`) | Phase 1 MVP — only 1 teacher, low security risk | Move to Supabase Edge Function validation or Supabase Auth |
+| **Comment Deletion** | FR-007: Soft delete (marked as `deleted`) | Hard delete (permanent removal from DB) | Simplifying MVP — audit not required in Phase 1 | Add `is_deleted` field, implement soft delete |
+| **AI Reply Editing** | FR-010: Teacher can edit AI replies | Not implemented (T015 not started) | Phase 1 scope reduction | Implement T015 in Phase 2 |
+| **Analytics Tracking** | SC-001: 80% engagement rate measurement | Manual measurement via CSV export | Phase 1 MVP — no automated analytics | Add analytics events table, automated reporting |
+| **AI Performance Logging** | SC-002: P95 < 5s measurement | No logging infrastructure | Phase 1 MVP — can measure manually | Add `ai_reply_logs` table with timestamps |
+
+**Note to Developers**: These simplifications are **acceptable for Phase 1 MVP** but **must be addressed before scaling to multiple classes or production use with real student data**. See `plan.md` "Technical Debt" section for tracking.
+
+---
+
 ## Phase 2 Preview / 二期预览
 
 The following features are planned for Phase 2 (separate specification will be created):
