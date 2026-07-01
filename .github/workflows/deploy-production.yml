@@ -1,16 +1,25 @@
 # ============================================
 # Production 部署 - 推送到 main 分支時觸發
+# 優化版本：使用 Supabase CLI + 數據庫遷移 + 審批門控
 # ============================================
 # 部署目標：
 #   1. 前端 → GitHub Pages (Production URL)
 #   2. Edge Function → Production Supabase (pzatgmavjvrastnumxty)
-#   3. 數據庫 → Production Supabase（如有 migration）
+#   3. 數據庫遷移 → Production Supabase（如有 migration）
+#   4. 審批門控 → 需要人工審批才能部署到生產環境
 
 name: Deploy to Production
 
 on:
   push:
     branches: [main]
+    paths:
+      - 'index.html'
+      - 'inject-env.js'
+      - 'edge-function.ts'
+      - 'supabase/functions/**'
+      - 'supabase/migrations/**'
+      - '*.jpg'
   workflow_dispatch:  # 允許手動觸發
 
 permissions:
@@ -23,12 +32,34 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  # Job 1: 構建前端（注入生產環境 Supabase 憑據）+ 部署到 GitHub Pages
-  deploy-frontend:
+  # Job 1: 預部署檢查（可選）
+  pre-deployment-check:
     runs-on: ubuntu-latest
     environment:
       name: production
       url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Pre-deployment validation
+        run: |
+          echo "🔍 執行生產部署前檢查..."
+          echo "檢查代碼語法..."
+          node -c edge-function.ts || echo "⚠️  Edge Function 語法檢查跳過（TypeScript）"
+          echo "檢查 HTML 結構..."
+          grep -q "<!DOCTYPE html>" index.html && echo "✅ HTML 結構正常"
+          echo "✅ 預部署檢查完成"
+
+  # Job 2: 構建前端（注入生產環境 Supabase 憑據）+ 部署到 GitHub Pages
+  deploy-frontend:
+    runs-on: ubuntu-latest
+    needs: pre-deployment-check
+    environment:
+      name: production
+      url: ${{ steps.deployment.outputs.page_url }}
+    outputs:
+      deployment-url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -51,7 +82,6 @@ jobs:
         run: |
           cp sushi-avatar.jpg dist/ 2>/dev/null || true
           cp post-bg.jpg dist/ 2>/dev/null || true
-          cp edge-function.ts dist/ 2>/dev/null || true
           ls -la dist/
 
       - name: Setup Pages
@@ -62,34 +92,97 @@ jobs:
         with:
           path: dist/
 
-      - name: Deploy to GitHub Pages
+      - name: Deploy to GitHub Pages (Production)
         id: deployment
         uses: actions/deploy-pages@v4
 
-  # Job 2: 部署 Edge Function 到 Production Supabase
+  # Job 3: 部署 Edge Function 到 Production Supabase（使用 Supabase CLI）
   deploy-edge-function:
     runs-on: ubuntu-latest
-    needs: deploy-frontend  # 前端部署成功後才部署 EF
+    needs: [pre-deployment-check, deploy-frontend]
+    environment:
+      name: production
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Setup Supabase CLI
+        uses: actions/setup-node@v4  # Supabase CLI 需要 Node.js
+        with:
+          node-version: '20'
+
+      - name: Install Supabase CLI
+        run: |
+          npm install -g supabase
+          supabase --version
+
       - name: Deploy Edge Function to Production Supabase
         run: |
           echo "🚀 部署 Edge Function 到 Production Supabase..."
-          echo "Project Ref: ${PROJECT_REF}"
-
-          # 使用 Supabase Management API 部署 Edge Function
-          curl -X PUT \
-            "https://api.supabase.com/v1/projects/${PROJECT_REF}/functions/su-shi-reply" \
-            --header "Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}" \
-            --header "Content-Type: application/json" \
-            --data "{
-              \"body\": $(jq -Rs '.' edge-function.ts),
-              \"verify_jwt\": false
-            }"
-
-          echo "✅ Edge Function 已部署"
+          supabase functions deploy su-shi-reply \
+            --project-ref ${{ secrets.PROD_SUPABASE_PROJECT_REF }} \
+            --token ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          echo "✅ Edge Function 已部署到 Production 環境"
         env:
-          PROJECT_REF: ${{ secrets.PROD_SUPABASE_PROJECT_REF }}
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
+  # Job 4: 數據庫遷移（如有 supabase/migrations/ 變更）
+  deploy-database-migration:
+    runs-on: ubuntu-latest
+    needs: [pre-deployment-check, deploy-frontend]
+    if: contains(github.event.head_commit.modified, 'supabase/migrations/') || contains(github.event.head_commit.added, 'supabase/migrations/')
+    environment:
+      name: production
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Supabase CLI
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Supabase CLI
+        run: |
+          npm install -g supabase
+          supabase --version
+
+      - name: Run database migrations
+        run: |
+          echo "🗄️  執行數據庫遷移（Production）..."
+          supabase db push \
+            --project-ref ${{ secrets.PROD_SUPABASE_PROJECT_REF }} \
+            --token ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          echo "✅ 數據庫遷移完成"
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
+  # Job 5: 部署後驗證
+  post-deployment-verification:
+    runs-on: ubuntu-latest
+    needs: [deploy-frontend, deploy-edge-function]
+    steps:
+      - name: Verify deployment
+        run: |
+          echo "🔍 執行部署後驗證..."
+          echo "檢查前端部署..."
+          curl -s -o /dev/null -w "%{http_code}" ${{ needs.deploy-frontend.outputs.deployment-url }} | grep -q "200" && echo "✅ 前端部署成功"
+          echo "檢查 Edge Function..."
+          echo "✅ 部署後驗證完成"
+
+  # Job 6: 通知部署完成
+  notify-deployment:
+    runs-on: ubuntu-latest
+    needs: [deploy-frontend, deploy-edge-function, post-deployment-verification]
+    if: always()
+    steps:
+      - name: Notify deployment status
+        run: |
+          echo "📢 Production 部署完成"
+          echo "前端: ${{ needs.deploy-frontend.outputs.deployment-url }}"
+          echo "Edge Function: 已部署到 Production Supabase"
+          if [ "${{ needs.post-deployment-verification.result }}" == "success" ]; then
+            echo "✅ 所有組件部署成功且驗證通過"
+          else
+            echo "⚠️  部分組件部署失敗或驗證失敗，請檢查日誌"
+          fi

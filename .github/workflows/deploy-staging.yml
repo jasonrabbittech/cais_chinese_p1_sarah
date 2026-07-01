@@ -1,15 +1,24 @@
 # ============================================
 # Staging 部署 - 推送到 testing 分支時觸發
+# 優化版本：使用 Supabase CLI + 數據庫遷移
 # ============================================
 # 部署目標：
 #   1. 前端 → GitHub Pages (Staging URL)
 #   2. Edge Function → Testing Supabase (gjbdqcjyliuxrnmwotvc)
+#   3. 數據庫遷移 → Testing Supabase (如有 supabase/migrations/ 變更)
 
 name: Deploy to Staging
 
 on:
   push:
     branches: [testing]
+    paths:
+      - 'index.html'
+      - 'inject-env.js'
+      - 'edge-function.ts'
+      - 'supabase/functions/**'
+      - 'supabase/migrations/**'
+      - '*.jpg'
   workflow_dispatch:  # 允許手動觸發
 
 permissions:
@@ -28,6 +37,8 @@ jobs:
     environment:
       name: staging
       url: ${{ steps.deployment.outputs.page_url }}
+    outputs:
+      deployment-url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -52,7 +63,6 @@ jobs:
         run: |
           cp sushi-avatar.jpg dist/ 2>/dev/null || true
           cp post-bg.jpg dist/ 2>/dev/null || true
-          cp edge-function.ts dist/ 2>/dev/null || true
           ls -la dist/
 
       - name: Setup Pages
@@ -67,7 +77,7 @@ jobs:
         id: deployment
         uses: actions/deploy-pages@v4
 
-  # Job 2: 部署 Edge Function 到 Testing Supabase
+  # Job 2: 部署 Edge Function 到 Testing Supabase（使用 Supabase CLI）
   deploy-edge-function:
     runs-on: ubuntu-latest
     needs: deploy-frontend
@@ -77,22 +87,60 @@ jobs:
         with:
           ref: testing
 
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
       - name: Deploy Edge Function to Testing Supabase
         run: |
           echo "🚀 部署 Edge Function 到 Testing Supabase..."
-          echo "Project Ref: ${PROJECT_REF}"
-
-          # 使用 Supabase Management API 部署 Edge Function
-          curl -X PUT \
-            "https://api.supabase.com/v1/projects/${PROJECT_REF}/functions/su-shi-reply" \
-            --header "Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}" \
-            --header "Content-Type: application/json" \
-            --data "{
-              \"body\": $(jq -Rs '.' edge-function.ts),
-              \"verify_jwt\": false
-            }"
-
+          supabase functions deploy su-shi-reply \
+            --project-ref ${{ secrets.TESTING_SUPABASE_PROJECT_REF }} \
+            --token ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           echo "✅ Edge Function 已部署到 Testing 環境"
         env:
-          PROJECT_REF: ${{ secrets.TESTING_SUPABASE_PROJECT_REF }}
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
+  # Job 3: 數據庫遷移（如有 supabase/migrations/ 變更）
+  deploy-database-migration:
+    runs-on: ubuntu-latest
+    needs: deploy-frontend
+    if: contains(github.event.head_commit.modified, 'supabase/migrations/') || contains(github.event.head_commit.added, 'supabase/migrations/')
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: testing
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Run database migrations
+        run: |
+          echo "🗄️  執行數據庫遷移（Testing）..."
+          supabase db push \
+            --project-ref ${{ secrets.TESTING_SUPABASE_PROJECT_REF }} \
+            --token ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          echo "✅ 數據庫遷移完成"
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
+  # Job 4: 通知部署完成
+  notify-deployment:
+    runs-on: ubuntu-latest
+    needs: [deploy-frontend, deploy-edge-function]
+    if: always()
+    steps:
+      - name: Notify deployment status
+        run: |
+          echo "📢 Staging 部署完成"
+          echo "前端: ${{ needs.deploy-frontend.outputs.deployment-url }}"
+          echo "Edge Function: 已部署到 Testing Supabase"
+          if [ "${{ needs.deploy-edge-function.result }}" == "success" ]; then
+            echo "✅ 所有組件部署成功"
+          else
+            echo "⚠️  部分組件部署失敗，請檢查日誌"
+          fi
