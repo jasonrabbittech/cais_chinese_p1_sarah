@@ -846,6 +846,9 @@ async function submitComment() {
     input.value = '';
     btn.disabled = false; btn.textContent='發送';
 
+    // 立即刷新評論列表（確保新留言顯示）
+    loadComments();
+
     if (data && data[0]) triggerAI(data[0]);
   } catch(e) {
     console.error(e); alert('發送失敗'); btn.disabled=false; btn.textContent='發送';
@@ -881,15 +884,16 @@ async function triggerAI(comment) {
     const { data, error } = await client.functions.invoke('su-shi-reply', {
       body: { record: comment },
     });
-    console.log('🤖 Edge Function 回應:', data, error);
+    console.log('🤖 Edge Function 回應:', JSON.stringify(data), error ? JSON.stringify(error) : '');
     
-    if (data?.reply) {
-      await writeReply(comment.id, data.reply, 'Edge Function');
+    if (data?.reply && !data.error) {
+      console.log(`🤖 ✅ 使用 DeepSeek AI 回覆: ${data.reply.substring(0, 50)}...`);
+      await writeReply(comment.id, data.reply, 'DeepSeek AI');
       return;
     }
     if (error) console.warn('⚠️ Edge Function 返回錯誤:', error);
   } catch(e) {
-    console.warn('⚠️ Edge Function 調用失敗:', e);
+    console.warn('⚠️ Edge Function 調用失敗（可能網絡或權限問題）:', e.message || e);
   }
 
   // 策略2：使用 DB 智能匹配回覆
@@ -941,14 +945,17 @@ async function writeReply(id, reply, source) {
   // 統一使用 Supabase JS Client（避免 CORS 問題）
   try {
     const { error } = await client.from('comments')
-      .update({ ai_reply: reply, replied_at: new Date().toISOString() })
+      .update({ ai_reply: reply, replied_at: new Date().toISOString(), is_replying: false })
       .eq('id', id);
-    if (!error) { console.log(`✅ 回覆已寫入 [${source}]`); return; }
+    if (!error) { 
+      console.log(`✅ 回覆已寫入 [${source}]`); 
+      // 刷新評論列表以顯示 AI 回覆
+      setTimeout(() => loadComments(), 500);
+      return; 
+    }
     console.error(`❌ 寫入失敗:`, error);
-    alert(`寫入回覆失敗，請重試。錯誤：${error.message}`);
   } catch(e) {
     console.error(`❌ 寫入異常:`, e);
-    alert(`寫入回覆時發生錯誤，請重試。`);
   }
 }
 
