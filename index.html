@@ -803,48 +803,60 @@ let realtimeChannel = null; // 存儲 Realtime channel 引用
 function subscribeRT() {
   // 如果已經有訂閱，先取消（避免重複訂閱）
   if (realtimeChannel) {
+    console.log('🔄 取消之前的 Realtime 訂閱');
     client.removeChannel(realtimeChannel);
     realtimeChannel = null;
   }
+
+  console.log('🔄 開始訂閱 Realtime (comments table)...');
 
   // 創建新訂閱
   realtimeChannel = client.channel('comments-channel')
     .on('postgres_changes', { event:'INSERT', schema:'public', table:'comments' }, (payload) => {
       // 新留言插入：立即添加到 UI（高效，不需重載全部）
+      console.log('🆕 收到 INSERT 事件:', payload);
       const newComment = payload.new;
       if (newComment) {
+        console.log('🆕 新留言:', newComment);
         addCommentToUI(newComment);
       } else {
+        console.warn('⚠️ INSERT 事件但沒有 new 資料，重載全部');
         loadComments(); // fallback：如果沒有資料就重載
       }
     })
     .on('postgres_changes', { event:'UPDATE', schema:'public', table:'comments' }, (payload) => {
       // 留言更新（例如 AI 回覆）：只更新該留言的 AI 回覆區域
+      console.log('✏️ 收到 UPDATE 事件:', payload);
       const updatedComment = payload.new;
       if (updatedComment && updatedComment.ai_reply) {
+        console.log('✏️ 留言更新 (AI 回覆):', updatedComment.id);
         updateCommentAIReplyInUI(updatedComment.id, updatedComment.ai_reply, updatedComment.replied_at);
       }
     })
     .on('postgres_changes', { event:'DELETE', schema:'public', table:'comments' }, (payload) => {
       // 立即從 DOM 移除被刪除的留言（高效，不需重載全部）
+      console.log('🗑️ 收到 DELETE 事件:', payload);
       const deletedId = payload.old?.id;
       if (deletedId) {
+        console.log('🗑️ 刪除留言:', deletedId);
         const el = document.querySelector(`[data-comment-id="${deletedId}"]`);
         if (el) {
           el.style.transition = 'opacity 0.3s';
           el.style.opacity = '0';
           setTimeout(() => el.remove(), 300);
         } else {
+          console.warn('⚠️ 找不到要刪除的元素，重載全部');
           loadComments(); // fallback：找不到元素就重載
         }
       } else {
+        console.warn('⚠️ DELETE 事件但沒有 old.id，重載全部');
         loadComments();
       }
     })
     .subscribe((status, err) => {
       // 錯誤處理
       if (status === 'SUBSCRIBED') {
-        console.log('✅ Realtime 訂閱成功');
+        console.log('✅ Realtime 訂閱成功 (channel: comments-channel)');
       } else if (status === 'CHANNEL_ERROR') {
         console.error('❌ Realtime 訂閱錯誤:', err);
         showToast('實時更新連接失敗，正在重試...', 'error');
