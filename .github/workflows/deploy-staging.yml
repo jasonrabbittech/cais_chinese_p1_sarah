@@ -96,9 +96,25 @@ jobs:
       - name: Deploy Edge Function to Testing Supabase
         run: |
           echo "🚀 部署 Edge Function 到 Testing Supabase..."
+          echo "📁 项目结构:"
+          ls -la
+          echo "📁 Supabase 目录:"
+          ls -la supabase/
+          if [ -d "supabase/functions" ]; then
+            echo "📁 Functions 目录:"
+            ls -la supabase/functions/
+            if [ -d "supabase/functions/su-shi-reply" ]; then
+              echo "📁 su-shi-reply 目录:"
+              ls -la supabase/functions/su-shi-reply/
+            fi
+          fi
+          echo "🔧 Supabase CLI 版本:"
+          supabase --version
+          echo "🚀 开始部署..."
           supabase functions deploy su-shi-reply \
             --project-ref ${{ secrets.TESTING_SUPABASE_PROJECT_REF }} \
-            --token ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+            --token ${{ secrets.SUPABASE_ACCESS_TOKEN }} \
+            --debug
           echo "✅ Edge Function 已部署到 Testing 環境"
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
