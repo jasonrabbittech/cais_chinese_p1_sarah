@@ -1,11 +1,10 @@
 # ============================================
 # Staging 部署 - 推送到 testing 分支時觸發
-# 優化版本：使用 Supabase CLI + 數據庫遷移
-# ============================================
 # 部署目標：
-#   1. 前端 → GitHub Pages (Staging URL)
+#   1. 前端 → cais_chinese_p1_sarah-staging repo (GitHub Pages)
 #   2. Edge Function → Testing Supabase (gjbdqcjyliuxrnmwotvc)
 #   3. 數據庫遷移 → Testing Supabase (如有 supabase/migrations/ 變更)
+# ============================================
 
 name: Deploy to Staging
 
@@ -15,31 +14,22 @@ on:
     paths:
       - 'index.html'
       - 'inject-env.js'
-      - 'edge-function.ts'
       - 'supabase/functions/**'
       - 'supabase/migrations/**'
       - '.github/workflows/**'
       - '*.jpg'
-  workflow_dispatch:  # 允許手動觸發
+      - 'favicon.svg'
+  workflow_dispatch:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
-
-concurrency:
-  group: pages-staging
-  cancel-in-progress: false
 
 jobs:
-  # Job 1: 構建前端（注入測試環境 Supabase 憑據）+ 部署到 GitHub Pages
+  # Job 1: 構建前端（注入測試環境 Supabase 憑據）+ 部署到 staging repo
   deploy-frontend:
     runs-on: ubuntu-latest
-    environment:
-      name: staging
-      url: ${{ steps.deployment.outputs.page_url }}
     outputs:
-      deployment-url: ${{ steps.deployment.outputs.page_url }}
+      staging-url: https://jasonrabbittech.github.io/cais_chinese_p1_sarah-staging/
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -51,7 +41,7 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Build frontend (inject staging env)
+      - name: Build frontend (inject testing env)
         run: |
           echo "🔧 注入測試環境 Supabase 憑據..."
           mkdir -p dist
@@ -64,21 +54,28 @@ jobs:
         run: |
           cp sushi-avatar.jpg dist/ 2>/dev/null || true
           cp post-bg.jpg dist/ 2>/dev/null || true
+          cp favicon.svg dist/ 2>/dev/null || true
           ls -la dist/
 
-      - name: Setup Pages
-        uses: actions/configure-pages@v4
+      - name: Deploy to staging repo (cais_chinese_p1_sarah-staging)
+        run: |
+          echo "🚀 部署前端到 Staging Repo..."
+          cd dist
+          git init
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Deploy staging: ${{ github.sha }}"
+          git remote add origin https://x-access-token:${{ secrets.STAGING_REPO_TOKEN }}@github.com/jasonrabbittech/cais_chinese_p1_sarah-staging.git
+          git push -f origin main
+          echo "✅ 前端已部署到 Staging Repo"
+        env:
+          GIT_AUTHOR_NAME: github-actions[bot]
+          GIT_AUTHOR_EMAIL: github-actions[bot]@users.noreply.github.com
+          GIT_COMMITTER_NAME: github-actions[bot]
+          GIT_COMMITTER_EMAIL: github-actions[bot]@users.noreply.github.com
 
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: dist/
-
-      - name: Deploy to GitHub Pages (Staging)
-        id: deployment
-        uses: actions/deploy-pages@v4
-
-  # Job 2: 部署 Edge Function 到 Testing Supabase（使用 Supabase CLI）
+  # Job 2: 部署 Edge Function 到 Testing Supabase
   deploy-edge-function:
     runs-on: ubuntu-latest
     needs: deploy-frontend
@@ -96,17 +93,6 @@ jobs:
       - name: Deploy Edge Function to Testing Supabase
         run: |
           echo "🚀 部署 Edge Function 到 Testing Supabase..."
-          echo "📁 项目结构:"
-          ls -la
-          echo "📁 Supabase 目录:"
-          ls -la supabase/
-          if [ -d "supabase/functions" ]; then
-            echo "📁 Functions 目录:"
-            ls -la supabase/functions/
-          fi
-          echo "🔧 Supabase CLI 版本:"
-          supabase --version
-          echo "🚀 开始部署..."
           supabase functions deploy su-shi-reply \
             --project-ref ${{ secrets.TESTING_SUPABASE_PROJECT_REF }}
           echo "✅ Edge Function 已部署到 Testing 環境"
@@ -117,7 +103,9 @@ jobs:
   deploy-database-migration:
     runs-on: ubuntu-latest
     needs: deploy-frontend
-    if: contains(github.event.head_commit.modified, 'supabase/migrations/') || contains(github.event.head_commit.added, 'supabase/migrations/')
+    if: |
+      contains(github.event.head_commit.modified, 'supabase/migrations/') ||
+      contains(github.event.head_commit.added, 'supabase/migrations/')
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -133,9 +121,7 @@ jobs:
         run: |
           echo "🗄️  執行數據庫遷移（Testing）..."
           supabase db push \
-            --project-ref ${{ secrets.TESTING_SUPABASE_PROJECT_REF }} \
-            --token ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-          echo "✅ 數據庫遷移完成"
+            --project-ref ${{ secrets.TESTING_SUPABASE_PROJECT_REF }}
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 
@@ -148,7 +134,7 @@ jobs:
       - name: Notify deployment status
         run: |
           echo "📢 Staging 部署完成"
-          echo "前端: ${{ needs.deploy-frontend.outputs.deployment-url }}"
+          echo "前端: https://jasonrabbittech.github.io/cais_chinese_p1_sarah-staging/"
           echo "Edge Function: 已部署到 Testing Supabase"
           if [ "${{ needs.deploy-edge-function.result }}" == "success" ]; then
             echo "✅ 所有組件部署成功"
