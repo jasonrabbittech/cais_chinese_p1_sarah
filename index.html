@@ -846,6 +846,9 @@ async function submitComment() {
     input.value = '';
     btn.disabled = false; btn.textContent='發送';
 
+    // 立即刷新評論列表（確保新留言顯示）
+    loadComments();
+
     if (data && data[0]) triggerAI(data[0]);
   } catch(e) {
     console.error(e); alert('發送失敗'); btn.disabled=false; btn.textContent='發送';
@@ -876,26 +879,21 @@ const BUILTIN_SMART = [
 async function triggerAI(comment) {
   console.log('🤖 開始呼叫 AI...', comment);
   
-  // 策略1：嘗試呼叫 Edge Function
+  // 策略1：使用 Supabase Client 呼叫 Edge Function（避免 CORS）
   try {
-    const res = await fetch(`${SUPABASE_URL}/functions/v1/su-shi-reply`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-        'apikey': SUPABASE_ANON_KEY,
-      },
-      body: JSON.stringify({ record: comment }),
+    const { data, error } = await client.functions.invoke('su-shi-reply', {
+      body: { record: comment },
     });
-    const data = await res.json();
-    console.log('🤖 Edge Function 回應:', data);
+    console.log('🤖 Edge Function 回應:', JSON.stringify(data), error ? JSON.stringify(error) : '');
     
-    if (res.ok && data.reply) {
-      await writeReply(comment.id, data.reply, 'Edge Function');
+    if (data?.reply && !data.error) {
+      console.log(`🤖 ✅ 使用 Edge Function (DeepSeek AI) 回覆: ${data.reply.substring(0, 50)}...`);
+      await writeReply(comment.id, data.reply, 'DeepSeek AI (EF)');
       return;
     }
+    if (error) console.warn('⚠️ Edge Function 返回錯誤:', error);
   } catch(e) {
-    console.warn('⚠️ Edge Function 調用失敗:', e);
+    console.warn('⚠️ Edge Function 調用失敗:', e.message || e);
   }
 
   // 策略2：使用 DB 智能匹配回覆
@@ -944,32 +942,21 @@ function getSmartReplyFromDB(content) {
 async function writeReply(id, reply, source) {
   console.log(`✍️ 寫入回覆 [${source}]:`, reply);
   
-  // 方法1: Supabase client
+  // 統一使用 Supabase JS Client（避免 CORS 問題）
   try {
     const { error } = await client.from('comments')
-      .update({ ai_reply: reply, replied_at: new Date().toISOString() })
+      .update({ ai_reply: reply, replied_at: new Date().toISOString(), is_replying: false })
       .eq('id', id);
-    if (!error) { console.log(`✅ 回覆已寫入 [${source}, 方法1]`); return; }
-    console.warn(`⚠️ 方法1失敗:`, error);
-  } catch(e) { console.warn(`⚠️ 方法1異常:`, e); }
-  
-  // 方法2: fetch REST API
-  try {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/comments?id=eq.${id}`, {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        'apikey': SUPABASE_ANON_KEY,
-        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-        'Prefer': 'return=minimal',
-      },
-      body: JSON.stringify({ ai_reply: reply, replied_at: new Date().toISOString() }),
-    });
-    if (res.ok) { console.log(`✅ 回覆已寫入 [${source}, 方法2]`); return; }
-    console.error(`❌ 方法2失敗:`, res.status);
-  } catch(e2) { console.error(`❌ 方法2異常:`, e2); }
-  
-  console.error(`❌ 所有寫入方式均失敗！留言ID: ${id}`);
+    if (!error) { 
+      console.log(`✅ 回覆已寫入 [${source}]`); 
+      // 刷新評論列表以顯示 AI 回覆
+      setTimeout(() => loadComments(), 500);
+      return; 
+    }
+    console.error(`❌ 寫入失敗:`, error);
+  } catch(e) {
+    console.error(`❌ 寫入異常:`, e);
+  }
 }
 
 // 舊版 fallback 保留兼容

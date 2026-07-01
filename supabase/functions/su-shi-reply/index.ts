@@ -1,10 +1,6 @@
 // ============================================================
 // 蘇軾朋友圈 — AI 回覆代理（Supabase Edge Function）
-// 格式：Deno.serve（Deno 2 原生，無需外部 serve 套件）
-// 部署：
-//   1. Supabase Dashboard → Edge Functions → su-shi-reply
-//   2. 貼上此程式碼
-//   3. Settings → Secrets 加入 DEEPSEEK_API_KEY + SERVICE_ROLE_KEY
+// 部署：supabase/functions/su-shi-reply/index.ts
 // ============================================================
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
@@ -61,15 +57,11 @@ async function loadDBTemplates(): Promise<{generic: string[], smart: {keyword: s
 }
 
 // 內建最終 fallback（DB 和 API 都失敗時）
-const BULTIN_FALLBACK = [
+const BUILTIN_FALLBACK = [
   "諸位安好！月色甚美，諸位可願與吾共賞這輪明月？",
   "哈哈，甚好甚好！諸位以為此月如何？",
   "月圓之夜，頗念子由。諸位可有思念之人？",
 ];
-
-// ============================================================
-// 主入口 — 使用 Deno 2 原生 Deno.serve()
-// ============================================================
 
 // ============================================================
 // 不當內容過濾器（伺服器端驗證 — 與前端同步）
@@ -127,7 +119,7 @@ const PROFANITY_REGEX: RegExp[] = [
   /f[\*@#$%!~^x\s]?u[\*@#$%!~^ck\s]*k/gi,
   /sh[\*@#$%!1iIt\s]+t/gi,
   /b[\*@#$%1iI\s]?[\*@#$%1iIt\s]*t[\*@#$%1iIt\s]*c[\*@#$%hH\s]/gi,
-  /a[\*@#$5sS\s]{2}/gi,
+  /a[\*@#$%5sS\s]{2}/gi,
   /(很|超|太|好|真|非常|特別|極|绝|最)\s*(醜|丑|胖|肥|矮|搓|窮|穷|笨|蠢|傻|呆|怪|噁|恶心|討厭|讨厌|可惡|可恶|煩|烦|烂|爛)/giu,
   /(蘇軾|蘇東坡|蘇|东坡|子由|苏轼|老师|teacher)\s*(是|真|好|超|很|太|最|極|超級|超级)\s*(醜|丑|胖|肥|矮|搓|窮|穷|笨|蠢|傻|呆|怪|噁|恶心|討厭|讨厌|可惡|可恶|煩|烦|烂|爛|垃圾|廢物|废物|白癡|白痴|傻逼|煞筆|沙雕|無聊|无聊|無趣|无趣|差勁|差劲|爛|爛人|爛鬼|廢|廢柴|废柴|死|死佬|死人|死鬼)/giu,
   /(靠{2,}|屌{2,}|幹{2,}|操{2,}|滾{2,}|笨{2,}|蠢{2,}|傻{2,})/gi,
@@ -144,7 +136,6 @@ function containsProfanity(text: string): boolean {
   }
   return false;
 }
-
 
 Deno.serve(async (req: Request) => {
   // CORS preflight
@@ -172,7 +163,7 @@ Deno.serve(async (req: Request) => {
     const { id, student_name, content } = record;
     console.log(`[su-shi-reply] 📨 收到留言: ${student_name} — ${content}`);
 
-    let aiReply: string;  // ← 移到這裡，在使用前聲明
+    let aiReply: string;
 
     // 不當內容檢查
     if (containsProfanity(content)) {
@@ -222,7 +213,7 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    // 🔑 重要：把 reply 放在回應裡，前端需要它！
+    // 重要：把 reply 放在回應裡，前端需要它！
     return jsonResponse({ success: true, reply: aiReply });
 
   } catch (error) {
@@ -289,7 +280,7 @@ async function updateCommentDB(id: string, aiReply: string): Promise<void> {
 
 // ── 工具函數 ──
 function randomFallback(): string {
-  return BULTIN_FALLBACK[Math.floor(Math.random() * BULTIN_FALLBACK.length)];
+  return BUILTIN_FALLBACK[Math.floor(Math.random() * BUILTIN_FALLBACK.length)];
 }
 
 function corsHeaders(): Record<string, string> {
