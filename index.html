@@ -798,10 +798,33 @@ function renderComments(comments) {
 }
 
 // ========== Realtime ==========
+let realtimeChannel = null; // 存儲 Realtime channel 引用
+
 function subscribeRT() {
-  client.channel('comments-channel')
-    .on('postgres_changes', { event:'INSERT', schema:'public', table:'comments' }, () => loadComments())
-    .on('postgres_changes', { event:'UPDATE', schema:'public', table:'comments' }, () => loadComments())
+  // 如果已經有訂閱，先取消（避免重複訂閱）
+  if (realtimeChannel) {
+    client.removeChannel(realtimeChannel);
+    realtimeChannel = null;
+  }
+
+  // 創建新訂閱
+  realtimeChannel = client.channel('comments-channel')
+    .on('postgres_changes', { event:'INSERT', schema:'public', table:'comments' }, (payload) => {
+      // 新留言插入：立即添加到 UI（高效，不需重載全部）
+      const newComment = payload.new;
+      if (newComment) {
+        addCommentToUI(newComment);
+      } else {
+        loadComments(); // fallback：如果沒有資料就重載
+      }
+    })
+    .on('postgres_changes', { event:'UPDATE', schema:'public', table:'comments' }, (payload) => {
+      // 留言更新（例如 AI 回覆）：只更新該留言的 AI 回覆區域
+      const updatedComment = payload.new;
+      if (updatedComment && updatedComment.ai_reply) {
+        updateCommentAIReplyInUI(updatedComment.id, updatedComment.ai_reply, updatedComment.replied_at);
+      }
+    })
     .on('postgres_changes', { event:'DELETE', schema:'public', table:'comments' }, (payload) => {
       // 立即從 DOM 移除被刪除的留言（高效，不需重載全部）
       const deletedId = payload.old?.id;
@@ -818,7 +841,131 @@ function subscribeRT() {
         loadComments();
       }
     })
-    .subscribe();
+    .subscribe((status, err) => {
+      // 錯誤處理
+      if (status === 'SUBSCRIBED') {
+        console.log('✅ Realtime 訂閱成功');
+      } else if (status === 'CHANNEL_ERROR') {
+        console.error('❌ Realtime 訂閱錯誤:', err);
+        showToast('實時更新連接失敗，正在重試...', 'error');
+        // 3 秒後重試
+        setTimeout(() => {
+          if (currentUserName) subscribeRT();
+        }, 3000);
+      } else if (status === 'TIMED_OUT') {
+        console.warn('⚠️ Realtime 訂閱超時');
+        showToast('實時更新連接超時，正在重試...', 'error');
+        setTimeout(() => {
+          if (currentUserName) subscribeRT();
+        }, 5000);
+      }
+    });
+}
+
+// 頁面卸載時取消訂閱（避免內存泄漏）
+window.addEventListener('beforeunload', () => {
+  if (realtimeChannel) {
+    client.removeChannel(realtimeChannel);
+    realtimeChannel = null;
+  }
+});
+
+// 將新留言立即添加到 UI（不重載全部）
+function addCommentToUI(comment) {
+  const el = document.getElementById('commentsList');
+  if (!el) return;
+  
+  // 移除「還沒有留言」的提示（如果存在）
+  const emptyHint = el.querySelector('.empty-hint');
+  if (emptyHint) emptyHint.remove();
+  
+  // 創建新留言的 HTML
+  const commentHTML = `
+    <div class="comment-card new-comment" id="comment-${comment.id}" data-comment-id="${comment.id}">
+      <div class="comment-row">
+        <span class="comment-bubble-icon">💬</span>
+        <div class="c-avatar student">${esc(comment.student_name)[0]}</div>
+        <div class="c-body">
+          <div class="c-header">
+            <span class="c-name">${esc(comment.student_name)}</span>
+            <span class="c-time">${fmtT(comment.created_at)}</span>
+          </div>
+          <div class="c-text">${esc(comment.content)}</div>
+        </div>
+      </div>
+      ${comment.ai_reply ? `
+      <div class="ai-reply-box">
+        <div class="comment-row">
+          <div class="c-avatar sushi"></div>
+          <div class="c-body">
+            <div class="c-header">
+              <span class="c-name">蘇軾<span class="ai-badge">AI</span></span>
+              <span class="c-time">${fmtT(comment.replied_at)}</span>
+            </div>
+            <div class="c-text">${esc(comment.ai_reply).replace(/\n/g,'<br>')}</div>
+          </div>
+        </div>
+      </div>` : ''}
+    </div>
+  `;
+  
+  // 插入到最前面（最新的留言在上面）
+  el.insertAdjacentHTML('afterbegin', commentHTML);
+  
+  // 視覺反饋：新留言高亮 2 秒
+  const newCommentEl = document.getElementById(`comment-${comment.id}`);
+  if (newCommentEl) {
+    newCommentEl.style.backgroundColor = '#fff9e6';
+    newCommentEl.style.transition = 'background-color 2s';
+    setTimeout(() => {
+      newCommentEl.style.backgroundColor = '';
+    }, 2000);
+  }
+}
+
+// 更新留言的 AI 回覆（不重載全部）
+function updateCommentAIReplyInUI(commentId, aiReply, repliedAt) {
+  const commentEl = document.getElementById(`comment-${commentId}`);
+  if (!commentEl) {
+    // 找不到元素，可能是新留言還沒添加到 UI，重載全部
+    loadComments();
+    return;
+  }
+  
+  // 檢查是否已經有 AI 回覆區域
+  let aiReplyBox = commentEl.querySelector('.ai-reply-box');
+  
+  if (!aiReplyBox) {
+    // 還沒有 AI 回覆，創建一個
+    aiReplyBox = document.createElement('div');
+    aiReplyBox.className = 'ai-reply-box';
+    aiReplyBox.innerHTML = `
+      <div class="comment-row">
+        <div class="c-avatar sushi"></div>
+        <div class="c-body">
+          <div class="c-header">
+            <span class="c-name">蘇軾<span class="ai-badge">AI</span></span>
+            <span class="c-time">${fmtT(repliedAt)}</span>
+          </div>
+          <div class="c-text">${esc(aiReply).replace(/\n/g,'<br>')}</div>
+        </div>
+      </div>
+    `;
+    commentEl.appendChild(aiReplyBox);
+  } else {
+    // 已經有 AI 回覆，更新內容
+    const cText = aiReplyBox.querySelector('.c-text');
+    const cTime = aiReplyBox.querySelector('.c-time');
+    if (cText) cText.innerHTML = esc(aiReply).replace(/\n/g,'<br>');
+    if (cTime) cTime.textContent = fmtT(repliedAt);
+  }
+  
+  // 視覺反饋：AI 回覆區域高亮 2 秒
+  aiReplyBox.style.backgroundColor = '#f0f4ff';
+  aiReplyBox.style.transition = 'background-color 2s';
+  setTimeout(() => {
+    aiReplyBox.style.backgroundColor = '';
+  }, 2000);
 }
 
 // ============================================================
