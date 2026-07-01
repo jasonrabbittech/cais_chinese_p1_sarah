@@ -2,23 +2,53 @@
 
 **Feature ID**: 001  
 **Feature Name**: ai-poet-friends  
-**Tasks Version**: 2.0 (Reorganized by User Stories)  
+**Tasks Version**: 2.1 (Updated with actual progress)  
 **Created**: 2026-07-01  
 **Last Updated**: 2026-07-01  
-**Status**: Ready for Execution
+**Status**: In Progress - Core Features Complete, Testing & Polish Remaining
+
+---
+
+## Session Notes / 会话记录
+
+### Session 1 (2026-07-01)
+
+**Accomplished**:
+- ✅ Fixed AI reply not working (Edge Function deployment issue - path error + CI/CD bug)
+- ✅ Fixed comments not auto-refreshing after submission
+- ✅ Updated `SERVICE_ROLE_KEY` in production environment (fixed 401 error)
+- ✅ Added favicon.svg (red circle with white "蘇" character)
+- ✅ Set up separate staging repo (`cais_chinese_p1_sarah-staging`) for CI/CD isolation
+- ✅ Updated `constitution.md` to reflect new CI/CD flow (staging/production separation)
+- ✅ Fixed `deploy-staging.yml` to push to staging repo instead of same repo
+- ✅ Verified production environment working (AI replies generating correctly)
+
+**Files Modified**:
+- `.github/workflows/deploy-staging.yml` - Rewritten to deploy to separate staging repo
+- `.specify/memory/constitution.md` - Updated CI/CD section (v1.1.1)
+- `index.html` - Added favicon link, fixed comment refresh
+- `favicon.svg` - Created
+
+**Next Session**:
+- Complete T020 (Integration Testing) - test all user scenarios in staging + production
+- Complete T021 (UAT) - recruit 5 students + 3 teachers for testing
+- Decide whether to persist likes to DB (T005) or keep as localStorage
 
 ---
 
 ## Task Summary / 任务概览
 
-| Category | Total | P1 (Must) | P2 (Should) | Completed |
-|----------|-------|-----------|-------------|-------------|
-| 🗄️ Database | 2 | 1 | 1 | 1 |
-| ⚙️ Backend | 3 | 2 | 1 | 2 |
-| 🎨 Frontend | 6 | 4 | 2 | 6 |
-| 🧪 Testing | 2 | 1 | 1 | 0 |
-| 📝 Documentation | 2 | 2 | 0 | 2 |
-| **Total** | **15** | **10** | **5** | **12** |
+| Category | Total | P1 (Must) | P2 (Should) | Completed | Partial |
+|----------|-------|-----------|-------------|-------------|----------|
+| 🗄️ Database | 2 | 1 | 1 | 1 | 0 |
+| ⚙️ Backend | 3 | 2 | 1 | 2 | 0 |
+| 🎨 Frontend | 7 | 4 | 3 | 6 | 1 |
+| 🧪 Testing | 2 | 1 | 1 | 0 | 0 |
+| 📝 Documentation | 3 | 2 | 1 | 3 | 0 |
+| 🔧 Polish | 3 | 1 | 2 | 0 | 0 |
+| **Total** | **20** | **11** | **9** | **12** | **1** |
+
+> **Note**: T005 (Like Functionality) is marked as Partial - works with localStorage but not persisted to DB.
 
 ---
 
@@ -30,13 +60,13 @@ Tasks are organized by **User Story** (from `spec.md`) to enable independent imp
 
 | User Story | Priority | Tasks | Status |
 |-------------|----------|-------|--------|
-| **US1**: Student First-Time Experience | P1 | T001-T005 | 🟡 In Progress |
-| **US2**: Student Returning User | P2 | T006-T007 | ⚪ Not Started |
-| **US3**: Teacher Moderation - Delete | P1 | T008-T009 | ✅ Completed |
-| **US4**: Teacher Analytics - Download | P1 | T010 | ✅ Completed |
-| **US5**: Teacher Analytics - Statistics | P2 | T011 | ✅ Completed |
-| **US6**: Teacher AI Management | P2 | T012 | ✅ Completed |
-| **US7**: Responsive Design | P1 | T013 | ✅ Completed |
+| **US1**: Student First-Time Experience | P1 | T003-T007 | ✅ Completed |
+| **US2**: Student Returning User | P2 | T008-T009 | ✅ Completed |
+| **US3**: Teacher Moderation - Delete | P1 | T010-T011 | ✅ Completed |
+| **US4**: Teacher Analytics - Download | P1 | T012 | ✅ Completed |
+| **US5**: Teacher Analytics - Statistics | P2 | T013 | ✅ Completed |
+| **US6**: Teacher AI Management | P2 | T014-T015 | ⚠️ Partial (T014 ✅, T015 ⚪) |
+| **US7**: Responsive Design | P1 | T016 | ✅ Completed |
 
 ---
 
