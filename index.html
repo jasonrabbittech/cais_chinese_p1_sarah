@@ -876,37 +876,6 @@ const BUILTIN_SMART = [
   { keywords: ['做什麼', '幹嘛'], reply: '方才獨酌至微醺，忽見明月，便想起子由。' },
 ];
 
-// 蘇軾完整 System Prompt（用於前端直連 DeepSeek）
-const SU_SHI_FULL_SYSTEM_PROMPT = `你是蘇軾（苏东坡，1037-1101），北宋著名文學家、書法家、美食家。
-你正在使用一個名為「朋友圈」的現代社交平台，剛剛發了一條狀態。
-
-【你的性格特點】
-- 豁達樂觀，雖仕途坎坷但總能苦中作樂
-- 文采斐然，擅長用詩詞表達情感
-- 幽默風趣，喜歡開玩笑，平易近人
-- 熱愛美食，懂生活情趣
-- 思念親人（尤其弟弟蘇轍），但不沉溺於悲傷
-- 有哲學思辨，常從自然中獲得人生感悟
-
-【創作背景：《水調歌頭·明月幾時有》】
-- 時間：宋神宗熙寧九年（1076年）中秋夜
-- 地點：密州（今山東諸城）
-- 情境：你因與王安石變法派政見不合，自請外放已五年
-- 心情：與弟弟蘇轍七年未見，中秋夜獨飲至天明
-
-【你的這條朋友圈內容】
-「丙辰中秋，歡飲達旦，大醉... 月亮真圓啊。子由（蘇轍）你在齊州還好嗎？
-人有悲歡離合，月有陰晴圓缺，此事古難全。但願人長久，千里共嬋娟。」
-
-【回覆要求】
-1. 用文言文與現代漢語結合的語言風格（偏白話，讓學生能看懂）
-2. 回覆要簡短（50-150字），符合朋友圈留言風格
-3. 根據學生的留言內容，靈活結合《水調歌頭》的情感
-4. 適當引用你的詩詞名句，但不生硬
-5. 偶爾用「哈哈」、「呵呵」等語氣詞
-6. 絕對不要說「我是AI」或「我是語言模型」
-只輸出回覆內容，不要加前綴。`;
-
 async function triggerAI(comment) {
   console.log('🤖 開始呼叫 AI...', comment);
   
@@ -924,19 +893,7 @@ async function triggerAI(comment) {
     }
     if (error) console.warn('⚠️ Edge Function 返回錯誤:', error);
   } catch(e) {
-    console.warn('⚠️ Edge Function 調用失敗，嘗試直接呼叫 DeepSeek:', e.message || e);
-  }
-
-  // 策略1b：前端直接呼叫 DeepSeek API（Edge Function 不可用時的備選方案）
-  try {
-    const directReply = await callDeepSeekDirect(comment.student_name, comment.content);
-    if (directReply) {
-      console.log(`🤖 ✅ 使用 DeepSeek 直連回覆: ${directReply.substring(0, 50)}...`);
-      await writeReply(comment.id, directReply, 'DeepSeek AI (Direct)');
-      return;
-    }
-  } catch(e) {
-    console.warn('⚠️ DeepSeek 直連也失敗:', e.message || e);
+    console.warn('⚠️ Edge Function 調用失敗:', e.message || e);
   }
 
   // 策略2：使用 DB 智能匹配回覆
@@ -959,31 +916,6 @@ async function triggerAI(comment) {
   const fallback = BUILTIN_GENERIC[Math.floor(Math.random() * BUILTIN_GENERIC.length)];
   console.log('💬 使用內建通用回覆:', fallback);
   await writeReply(comment.id, fallback, 'Builtin Fallback');
-}
-
-// 前端直連 DeepSeek API（Edge Function 不可用時的備選方案）
-// 使用生產環境 Edge Function URL 作為備選
-async function callDeepSeekDirect(studentName, content) {
-  try {
-    // 嘗試使用生產環境的 Supabase Edge Function（如果 staging 的不可用）
-    const prodUrl = 'https://pzatgmavjvrastnumxty.supabase.co/functions/v1/su-shi-reply';
-    const res = await fetch(prodUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-      },
-      body: JSON.stringify({
-        record: { id: 'direct-' + Date.now(), student_name: studentName, content }
-      }),
-    });
-    if (!res.ok) throw new Error(`Direct HTTP ${res.status}`);
-    const data = await res.json();
-    return data?.reply || null;
-  } catch(e) {
-    console.warn('⚠️ DeepSeek 直連失敗:', e.message);
-    return null;
-  }
 }
 
 // 根據留言內容智能匹配回覆（從 DB 模板）
