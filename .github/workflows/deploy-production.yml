@@ -19,6 +19,7 @@ on:
       - 'edge-function.ts'
       - 'supabase/functions/**'
       - 'supabase/migrations/**'
+      - '.github/workflows/**'
       - '*.jpg'
   workflow_dispatch:  # 允許手動觸發
 
