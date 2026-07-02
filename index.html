@@ -505,6 +505,115 @@
     0%, 100% { opacity: 1; }
     50% { opacity: 0.5; }
   }
+
+  /* ===== 詩人標籤（多詩人） ===== */
+  .poet-tabs {
+    display: flex;
+    gap: 8px;
+    padding: 10px 14px;
+    overflow-x: auto;
+    background: #fff;
+    border-bottom: 1px solid #ebebeb;
+    -webkit-overflow-scrolling: touch;
+  }
+  .poet-tab {
+    flex-shrink: 0;
+    padding: 7px 14px;
+    background: #f2f2f2;
+    border: none;
+    border-radius: 18px;
+    font-size: 14px;
+    color: #555;
+    cursor: pointer;
+    white-space: nowrap;
+    font-family: inherit;
+    transition: all 0.15s;
+  }
+  .poet-tab.active {
+    background: #576b95;
+    color: #fff;
+    font-weight: 500;
+  }
+  .poet-tab .emoji { margin-right: 3px; }
+
+  /* ===== 作品選擇器 ===== */
+  .post-selector {
+    padding: 8px 14px 4px;
+    background: #fff;
+  }
+  .post-selector select {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 14px;
+    background: #fafafa;
+    color: #333;
+    font-family: inherit;
+    outline: none;
+  }
+  .post-selector select:focus { border-color: #576b95; }
+
+  /* ===== 多輪對話線程 ===== */
+  .ai-thread { margin-top: 8px; }
+  .ai-reply-node {
+    padding: 9px 11px;
+    background: #fff;
+    border-radius: 4px;
+    border-left: 3px solid #576b95;
+    margin-bottom: 6px;
+    animation: fadeUp 0.25s ease;
+  }
+  .ai-reply-node .c-header { margin-bottom: 2px; }
+  .followup-row {
+    display: none;
+    gap: 6px;
+    margin-top: 8px;
+    align-items: center;
+  }
+  .followup-row.show { display: flex; }
+  .followup-row input {
+    flex: 1;
+    border: 1px solid #ddd;
+    border-radius: 18px;
+    padding: 7px 12px;
+    font-size: 13px;
+    outline: none;
+    font-family: inherit;
+  }
+  .followup-row button {
+    background: #07c160;
+    color: #fff;
+    border: none;
+    border-radius: 18px;
+    padding: 7px 14px;
+    font-size: 13px;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .followup-row button:disabled { background: #ccc; }
+  .continue-btn {
+    margin-top: 8px;
+    background: none;
+    border: 1px solid #576b95;
+    color: #576b95;
+    border-radius: 14px;
+    padding: 4px 12px;
+    font-size: 12px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .continue-btn:disabled { color: #bbb; border-color: #ddd; cursor: not-allowed; }
+  .round-badge {
+    display: inline-block;
+    background: #eef1f7;
+    color: #576b95;
+    font-size: 10px;
+    padding: 1px 6px;
+    border-radius: 6px;
+    margin-left: 4px;
+  }
+  .t-ctx { color:#999; font-size:11px; margin-top:2px; }
   </style>
   
   <!-- Toast 通知 -->
@@ -545,48 +654,33 @@
       <span class="header-title"></span>
     </div>
 
-    <!-- 蘇軾帖子 -->
+    <!-- 詩人標籤（多詩人） -->
+    <div class="poet-tabs" id="poetTabs"></div>
+
+    <!-- 作品選擇器 -->
+    <div class="post-selector">
+      <select id="postSelect" onchange="selectPost(this.value)"></select>
+    </div>
+
+    <!-- 當前作品 -->
     <div class="post">
-      
-      <!-- 圖片區域 -->
       <div class="post-image-area">
-        <!-- 右下角作者信息疊加 -->
         <div class="post-author-overlay">
-          <span class="post-author-name-overlay">蘇軾</span>
-          <div class="post-avatar-overlay"></div>
+          <span class="post-author-name-overlay" id="postAuthorName">詩人</span>
+          <div class="post-avatar-overlay" id="postAvatarOverlay"></div>
         </div>
       </div>
-      
-      <!-- 帖子內容 -->
       <div class="post-body">
-        <!-- 用戶頭像+名字 -->
         <div class="post-user-row">
           <div class="post-user-avatar"></div>
-          <div class="post-user-name">蘇軾</div>
+          <div class="post-user-name" id="postAuthorName2">詩人</div>
         </div>
-        
-        <!-- 文字內容 -->
-        <div class="post-text">
-          <p>丙辰中秋，歡飲達旦，大醉...</p>
-          <p>月亮真圓啊🌕 想起在齊州的子由（蘇轍），七年未見，甚是想念。</p>
-          <p>人生就是這樣吧，「人有悲歡離合，月有陰晴圓缺」，此事古難全。唯願天下人都能平安健康，即便相隔千里，也能共賞這一輪明月。🌙</p>
-          <p>對了，今晚的月光配密州的美酒，絕了！🍶</p>
-        </div>
-        
-        <div class="post-tags">
-          <span class="post-tag">#中秋</span>
-          <span class="post-tag">#思念</span>
-          <span class="post-tag">#水調歌頭</span>
-          <span class="post-tag">#密州</span>
-        </div>
+        <div class="post-text" id="postText"></div>
+        <div class="post-tags" id="postTags"></div>
       </div>
-      
-      <!-- 操作欄：時間 + 橫向兩點 -->
       <div class="post-actions-row">
         <span class="post-time" id="postTime"></span>
         <button class="more-dots-h" onclick="togglePopup()">··</button>
-        
-        <!-- 深灰色彈出菜單（向左展開） -->
         <div class="more-popup" id="morePopup">
           <button class="popup-item" onclick="toggleLike(); closePopup()">
             <svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
@@ -598,8 +692,6 @@
           </button>
         </div>
       </div>
-
-      <!-- 點讚區：心形 + 頭像列表 -->
       <div class="likes-section" id="likesSection">
         <div class="likes-row">
           <span class="heart-icon-sm">♡</span>
@@ -641,6 +733,18 @@ let isLiked = false;
 let likeCount = 128;
 const TEACHER_PASSWORD = 'cais2024';
 
+// ========== 多詩人狀態（Feature 002） ==========
+let poets = [];          // 所有詩人
+let posts = [];          // 當前詩人的作品
+let currentPoetId = null;
+let currentPostId = null;
+let comments = [];       // 當前作品的留言
+let repliesByComment = {}; // comment_id -> [ai_replies]
+// Realtime channels
+let commentsChannel = null;
+let repliesChannel = null;
+const MAX_ROUNDS = 5;
+
 // ========== 初始化 ==========
 window.addEventListener('DOMContentLoaded', async () => {
   // 設定帖子時間為當前時間
@@ -651,9 +755,7 @@ window.addEventListener('DOMContentLoaded', async () => {
   if (savedName) {
     currentUserName = savedName;
     document.getElementById('nameModal').style.display = 'none';
-    await loadComments();
-    subscribeRT();
-    loadTemplatesFromDB(); // 載入 DB 模板
+    await loadPoets();       // 載入詩人 → 作品 → 留言 → Realtime
   }
   loadLikeState();
 });
@@ -723,9 +825,7 @@ function submitName() {
   currentUserName = n;
   localStorage.setItem('su_shi_name', n);
   document.getElementById('nameModal').style.display = 'none';
-  loadComments();
-  subscribeRT();
-  loadTemplatesFromDB(); // 載入 DB 模板
+  await loadPoets();
 }
 
 function showLoginError(msg) {
@@ -742,33 +842,54 @@ function showLoginError(msg) {
 
 // ========== 載入 & 渲染留言 ==========
 async function loadComments() {
+  if (!currentPostId) return;
   try {
-    const { data, error } = await client.from('comments').select('*').order('created_at', { ascending: true });
+    const { data, error } = await client.from('comments')
+      .select('*').eq('post_id', currentPostId).order('created_at', { ascending: true });
     if (error) { 
       console.error('載入留言失敗:', error); 
       showToast('載入留言失敗，請稍後重試', 'error'); 
       return; 
     }
-    renderComments(data);
+    comments = data || [];
+    repliesByComment = {};
+    const ids = comments.map(c => c.id);
+    if (ids.length) {
+      const { data: replies, error: rErr } = await client.from('ai_replies')
+        .select('*').in('comment_id', ids).order('round', { ascending: true });
+      if (!rErr && replies) {
+        replies.forEach(r => {
+          (repliesByComment[r.comment_id] = repliesByComment[r.comment_id] || []).push(r);
+        });
+      }
+    }
+    renderComments(comments);
   } catch(e) { 
     console.error('網絡錯誤:', e); 
     showToast('網絡連接失敗，請檢查網絡', 'error'); 
   }
 }
 
-function renderComments(comments) {
+function renderComments(commentList) {
   const el = document.getElementById('commentsList');
 
-  if (!comments || comments.length === 0) {
+  if (!commentList || commentList.length === 0) {
     el.innerHTML = '<div class="empty-hint"><span class="emoji">💬</span><p>還沒有留言，來搶沙發吧！</p></div>';
     return;
   }
 
   // 按時間倒序排列（最新的在上面）
-  const sorted = [...comments].reverse();
+  const sorted = [...commentList].reverse();
+  el.innerHTML = sorted.map(c => renderCommentCard(c)).join('');
+}
 
-  el.innerHTML = sorted.map(c => `
-    <div class="comment-card" id="comment-${c.id}" data-comment-id="${c.id}">
+/** 渲染單一留言卡片（含多輪對話線程） */
+function renderCommentCard(c) {
+  const replies = repliesByComment[c.id] || [];
+  const lastRound = replies.length ? Math.max(...replies.map(r => r.round)) : 0;
+  const canContinue = lastRound < MAX_ROUNDS;
+  return `
+    <div class="comment-card" id="comment-${c.id}" data-comment-id="${c.id}" data-post-id="${c.post_id}">
       <div class="comment-row">
         <span class="comment-bubble-icon">💬</span>
         <div class="c-avatar student">${esc(c.student_name)[0]}</div>
@@ -780,205 +901,304 @@ function renderComments(comments) {
           <div class="c-text">${esc(c.content)}</div>
         </div>
       </div>
-      ${c.ai_reply ? `
-      <div class="ai-reply-box">
-        <div class="comment-row">
-          <div class="c-avatar sushi"></div>
-          <div class="c-body">
-            <div class="c-header">
-              <span class="c-name">蘇軾<span class="ai-badge">AI</span></span>
-              <span class="c-time">${fmtT(c.replied_at)}</span>
-            </div>
-            <div class="c-text">${esc(c.ai_reply).replace(/\n/g,'<br>')}</div>
-          </div>
-        </div>
-      </div>` : ''}
-    </div>
-  `).join('');
+      <div class="ai-thread" id="thread-${c.id}">
+        ${replies.map(r => renderReplyNode(r)).join('')}
+      </div>
+      <button class="continue-btn" id="continue-${c.id}" ${canContinue ? '' : 'disabled'} onclick="startFollowUp('${c.id}')">${canContinue ? '💬 繼續提問' : '已達最多輪數'}</button>
+      <div class="followup-row" id="followup-${c.id}">
+        <input type="text" id="followInput-${c.id}" placeholder="輸入追問…" maxlength="200" onkeypress="if(event.key==='Enter') submitFollowUp('${c.id}')">
+        <button id="followBtn-${c.id}" onclick="submitFollowUp('${c.id}')">發送</button>
+      </div>
+    </div>`;
 }
 
-// ========== Realtime ==========
-let realtimeChannel = null; // 存儲 Realtime channel 引用
+/** 渲染單一 AI 回覆節點（含學生追問） */
+function renderReplyNode(r) {
+  const showQ = r.round > 1 && r.user_message;
+  return `
+    <div class="ai-reply-node" id="reply-${r.id}" data-reply-id="${r.id}">
+      ${showQ ? `<div class="c-text" style="color:#666;font-size:13px;margin-bottom:4px;">🙋 ${esc(r.user_message)}</div>` : ''}
+      <div class="comment-row">
+        <div class="c-avatar sushi"></div>
+        <div class="c-body">
+          <div class="c-header">
+            <span class="c-name">${esc(getCurrentPoetName())}<span class="ai-badge">AI</span><span class="round-badge">第${r.round}輪</span></span>
+            <span class="c-time">${fmtT(r.created_at)}</span>
+          </div>
+          <div class="c-text">${esc(r.reply_text).replace(/\n/g,'<br>')}</div>
+        </div>
+      </div>
+    </div>`;
+}
 
-function subscribeRT() {
-  // 如果已經有訂閱，先取消（避免重複訂閱）
-  if (realtimeChannel) {
-    console.log('🔄 取消之前的 Realtime 訂閱');
-    client.removeChannel(realtimeChannel);
-    realtimeChannel = null;
+/** 取得當前詩人名稱（用於 AI 徽章顯示） */
+function getCurrentPoetName() {
+  const p = poets.find(x => x.id === currentPoetId);
+  return p ? p.name : '詩人';
+}
+
+// ========== 多詩人：載入與切換（T027） ==========
+async function loadPoets() {
+  try {
+    const { data, error } = await client.from('poets').select('*').order('name');
+    if (error) { console.error(error); showToast('載入詩人失敗', 'error'); return; }
+    poets = data || [];
+    renderPoetTabs();
+    if (poets.length) await selectPoet(poets[0].id);
+  } catch (e) { console.error(e); showToast('網絡錯誤', 'error'); }
+}
+
+function renderPoetTabs() {
+  const el = document.getElementById('poetTabs');
+  if (!el) return;
+  el.innerHTML = poets.map(p =>
+    `<button class="poet-tab" data-poet="${p.id}" onclick="selectPoet('${p.id}')"><span class="emoji">${esc(p.avatar_emoji)}</span>${esc(p.name)}</button>`
+  ).join('');
+}
+
+async function selectPoet(poetId) {
+  currentPoetId = poetId;
+  document.querySelectorAll('.poet-tab').forEach(t => t.classList.toggle('active', t.dataset.poet === poetId));
+  const { data, error } = await client.from('posts').select('*').eq('poet_id', poetId).order('created_at');
+  posts = (data || []).filter(p => p.poet_id === poetId);
+  renderPostSelect();
+  if (posts.length) {
+    await selectPost(posts[0].id);
+  } else {
+    currentPostId = null;
+    document.getElementById('postText').innerHTML = '<p style="color:#999;">此詩人暫無作品</p>';
+    document.getElementById('postTags').innerHTML = '';
+    await loadComments();
+    subscribeRT();
   }
+}
 
-  console.log('🔄 開始訂閱 Realtime (comments table)...');
+function renderPostSelect() {
+  const sel = document.getElementById('postSelect');
+  if (!sel) return;
+  sel.innerHTML = posts.map(p => `<option value="${p.id}">${esc(p.title)}</option>`).join('');
+}
 
-  // 創建新訂閱
-  realtimeChannel = client.channel('comments-channel')
-    .on('postgres_changes', { event:'INSERT', schema:'public', table:'comments' }, (payload) => {
-      // 新留言插入：立即添加到 UI（高效，不需重載全部）
-      console.log('🆕 收到 INSERT 事件:', payload);
-      const newComment = payload.new;
-      if (newComment) {
-        console.log('🆕 新留言:', newComment);
-        addCommentToUI(newComment);
+async function selectPost(postId) {
+  currentPostId = postId;
+  const post = posts.find(p => p.id === postId);
+  renderPost(post);
+  await loadComments();
+  subscribeRT();
+}
+
+function renderPost(post) {
+  const poet = poets.find(p => p.id === currentPoetId);
+  if (!post) return;
+  document.getElementById('postAuthorName').textContent = poet ? poet.name : '詩人';
+  document.getElementById('postAuthorName2').textContent = poet ? poet.name : '詩人';
+  const avatar = document.getElementById('postAvatarOverlay');
+  if (avatar) {
+    avatar.textContent = poet ? poet.avatar_emoji : '📜';
+    avatar.style.background = 'linear-gradient(135deg,#a8edea,#fed6e3)';
+    avatar.style.display = 'flex';
+    avatar.style.alignItems = 'center';
+    avatar.style.justifyContent = 'center';
+    avatar.style.fontSize = '30px';
+  }
+  const paras = String(post.content || '').split('\n').filter(Boolean).map(t => `<p>${esc(t)}</p>`).join('');
+  document.getElementById('postText').innerHTML = paras;
+  const bg = post.background_story ? `<span class="post-tag">📖 ${esc(post.background_story)}</span>` : '';
+  document.getElementById('postTags').innerHTML = bg;
+}
+
+// ========== Realtime（按 post_id 過濾，T029） ==========
+function subscribeRT() {
+  // 取消舊訂閱（切換作品時重建）
+  if (commentsChannel) { client.removeChannel(commentsChannel); commentsChannel = null; }
+  if (repliesChannel) { client.removeChannel(repliesChannel); repliesChannel = null; }
+
+  // 1) comments 頻道：僅處理當前作品的留言
+  commentsChannel = client.channel('comments-post-' + currentPostId)
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'comments' }, (payload) => {
+      const nc = payload.new;
+      if (nc && nc.post_id === currentPostId) {
+        console.log('🆕 當前作品新留言:', nc.id);
+        addCommentToUI(nc);
       } else {
-        console.warn('⚠️ INSERT 事件但沒有 new 資料，重載全部');
-        loadComments(); // fallback：如果沒有資料就重載
+        console.log('↩️ 非當前作品留言，忽略');
       }
     })
-    .on('postgres_changes', { event:'UPDATE', schema:'public', table:'comments' }, (payload) => {
-      // 留言更新（例如 AI 回覆）：只更新該留言的 AI 回覆區域
-      console.log('✏️ 收到 UPDATE 事件:', payload);
-      const updatedComment = payload.new;
-      if (updatedComment && updatedComment.ai_reply) {
-        console.log('✏️ 留言更新 (AI 回覆):', updatedComment.id);
-        updateCommentAIReplyInUI(updatedComment.id, updatedComment.ai_reply, updatedComment.replied_at);
-      }
-    })
-    .on('postgres_changes', { event:'DELETE', schema:'public', table:'comments' }, (payload) => {
-      // 立即從 DOM 移除被刪除的留言（高效，不需重載全部）
-      console.log('🗑️ 收到 DELETE 事件:', payload);
+    .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'comments' }, (payload) => {
       const deletedId = payload.old?.id;
-      if (deletedId) {
-        console.log('🗑️ 刪除留言:', deletedId);
-        const el = document.querySelector(`[data-comment-id="${deletedId}"]`);
-        if (el) {
-          el.style.transition = 'opacity 0.3s';
-          el.style.opacity = '0';
-          setTimeout(() => el.remove(), 300);
-        } else {
-          console.warn('⚠️ 找不到要刪除的元素，重載全部');
-          loadComments(); // fallback：找不到元素就重載
-        }
+      if (!deletedId) return;
+      const el = document.querySelector(`[data-comment-id="${deletedId}"]`);
+      if (el) {
+        el.style.transition = 'opacity 0.3s';
+        el.style.opacity = '0';
+        setTimeout(() => el.remove(), 300);
       } else {
-        console.warn('⚠️ DELETE 事件但沒有 old.id，重載全部');
         loadComments();
       }
     })
     .subscribe((status, err) => {
-      // 錯誤處理
-      if (status === 'SUBSCRIBED') {
-        console.log('✅ Realtime 訂閱成功 (channel: comments-channel)');
-      } else if (status === 'CHANNEL_ERROR') {
-        console.error('❌ Realtime 訂閱錯誤:', err);
+      if (status === 'CHANNEL_ERROR') {
         showToast('實時更新連接失敗，正在重試...', 'error');
-        // 3 秒後重試
-        setTimeout(() => {
-          if (currentUserName) subscribeRT();
-        }, 3000);
-      } else if (status === 'TIMED_OUT') {
-        console.warn('⚠️ Realtime 訂閱超時');
-        showToast('實時更新連接超時，正在重試...', 'error');
-        setTimeout(() => {
-          if (currentUserName) subscribeRT();
-        }, 5000);
+        setTimeout(() => { if (currentUserName) subscribeRT(); }, 3000);
+      }
+    });
+
+  // 2) ai_replies 頻道：僅處理當前作品的回覆
+  repliesChannel = client.channel('replies-post-' + currentPostId)
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'ai_replies' }, (payload) => {
+      const nr = payload.new;
+      if (!nr) return;
+      if (commentPostId(nr.comment_id) !== currentPostId) {
+        console.log('↩️ 非當前作品回覆，忽略');
+        return;
+      }
+      console.log('🤖 當前作品新回覆:', nr.id);
+      appendReplyToComment(nr.comment_id, nr);
+    })
+    .subscribe((status, err) => {
+      if (status === 'CHANNEL_ERROR') {
+        showToast('實時回覆連接失敗，正在重試...', 'error');
+        setTimeout(() => { if (currentUserName) subscribeRT(); }, 3000);
       }
     });
 }
 
+/** 取得某留言所屬作品的 post_id */
+function commentPostId(commentId) {
+  const c = comments.find(x => x.id === commentId);
+  return c ? c.post_id : null;
+}
+
 // 頁面卸載時取消訂閱（避免內存泄漏）
 window.addEventListener('beforeunload', () => {
-  if (realtimeChannel) {
-    client.removeChannel(realtimeChannel);
-    realtimeChannel = null;
-  }
+  if (commentsChannel) { client.removeChannel(commentsChannel); commentsChannel = null; }
+  if (repliesChannel) { client.removeChannel(repliesChannel); repliesChannel = null; }
 });
 
 // 將新留言立即添加到 UI（不重載全部）
 function addCommentToUI(comment) {
   const el = document.getElementById('commentsList');
   if (!el) return;
-  
-  // 移除「還沒有留言」的提示（如果存在）
+  // 去重：本地插入與 Realtime 推送可能同時觸發
+  if (document.getElementById('comment-' + comment.id)) return;
   const emptyHint = el.querySelector('.empty-hint');
   if (emptyHint) emptyHint.remove();
-  
-  // 創建新留言的 HTML
-  const commentHTML = `
-    <div class="comment-card new-comment" id="comment-${comment.id}" data-comment-id="${comment.id}">
-      <div class="comment-row">
-        <span class="comment-bubble-icon">💬</span>
-        <div class="c-avatar student">${esc(comment.student_name)[0]}</div>
-        <div class="c-body">
-          <div class="c-header">
-            <span class="c-name">${esc(comment.student_name)}</span>
-            <span class="c-time">${fmtT(comment.created_at)}</span>
-          </div>
-          <div class="c-text">${esc(comment.content)}</div>
-        </div>
-      </div>
-      ${comment.ai_reply ? `
-      <div class="ai-reply-box">
-        <div class="comment-row">
-          <div class="c-avatar sushi"></div>
-          <div class="c-body">
-            <div class="c-header">
-              <span class="c-name">蘇軾<span class="ai-badge">AI</span></span>
-              <span class="c-time">${fmtT(comment.replied_at)}</span>
-            </div>
-            <div class="c-text">${esc(comment.ai_reply).replace(/\n/g,'<br>')}</div>
-          </div>
-        </div>
-      </div>` : ''}
-    </div>
-  `;
-  
-  // 插入到最前面（最新的留言在上面）
-  el.insertAdjacentHTML('afterbegin', commentHTML);
-  
-  // 視覺反饋：新留言高亮 2 秒
+  // 同步到本地 comments 陣列
+  if (!comments.find(c => c.id === comment.id)) comments.unshift(comment);
+  el.insertAdjacentHTML('afterbegin', renderCommentCard(comment));
   const newCommentEl = document.getElementById(`comment-${comment.id}`);
   if (newCommentEl) {
     newCommentEl.style.backgroundColor = '#fff9e6';
     newCommentEl.style.transition = 'background-color 2s';
-    setTimeout(() => {
-      newCommentEl.style.backgroundColor = '';
-    }, 2000);
+    setTimeout(() => { newCommentEl.style.backgroundColor = ''; }, 2000);
+  }
+}
+
+// ========== 多輪對話（Feature 002） ==========
+
+/** 取得某留言的最新一輪回覆 */
+function getLastReply(commentId) {
+  const list = repliesByComment[commentId] || [];
+  if (!list.length) return null;
+  return list.reduce((a, b) => (b.round > a.round ? b : a));
+}
+
+/** 將一筆 ai_replies 加入 UI 線程（依 reply_id 去重，避免 Realtime 與手動插入重複） */
+function appendReplyToComment(commentId, reply) {
+  const thread = document.getElementById('thread-' + commentId);
+  if (!thread) return;
+  if (document.getElementById('reply-' + reply.id)) return; // 已存在
+  // 同步到本地分組
+  (repliesByComment[commentId] = repliesByComment[commentId] || []).push(reply);
+  thread.insertAdjacentHTML('beforeend', renderReplyNode(reply));
+  // 更新「繼續提問」按鈕狀態（達 5 輪則停用）
+  const lastRound = Math.max(...repliesByComment[commentId].map(r => r.round));
+  const btn = document.getElementById('continue-' + commentId);
+  if (btn) {
+    if (lastRound >= MAX_ROUNDS) {
+      btn.disabled = true;
+      btn.textContent = '已達最多輪數';
+    }
+  }
+  // 高亮新回覆
+  const node = document.getElementById('reply-' + reply.id);
+  if (node) {
+    node.style.backgroundColor = '#f0f4ff';
+    node.style.transition = 'background-color 2s';
+    setTimeout(() => { node.style.backgroundColor = ''; }, 2000);
+  }
+}
+
+/** 展開追問輸入框 */
+function startFollowUp(commentId) {
+  const row = document.getElementById('followup-' + commentId);
+  if (row) {
+    row.classList.add('show');
+    const input = document.getElementById('followInput-' + commentId);
+    if (input) input.focus();
+  }
+}
+
+/** 提交追問（多輪） */
+async function submitFollowUp(commentId) {
+  const input = document.getElementById('followInput-' + commentId);
+  const msg = input ? input.value.trim() : '';
+  if (!msg) { showToast('請輸入追問內容', 'error'); return; }
+  if (containsProfanity(msg)) { showToast('留言內容不當，請使用文明用語 🙏', 'error'); return; }
+  const last = getLastReply(commentId);
+  if (last && last.round >= MAX_ROUNDS) { showToast('已達最多輪數', 'error'); return; }
+
+  const btn = document.getElementById('followBtn-' + commentId);
+  if (btn) { btn.disabled = true; btn.textContent = '發送中…'; }
+
+  // 先顯示「思考中」
+  const thread = document.getElementById('thread-' + commentId);
+  const thinkingId = 'thinking-' + commentId + '-' + Date.now();
+  if (thread) {
+    const t = document.createElement('div');
+    t.id = thinkingId;
+    t.className = 'ai-thinking';
+    t.style.cssText = 'color:#999;font-size:12px;margin-top:4px;font-style:italic;';
+    t.innerHTML = '💭 ' + getCurrentPoetName() + ' 正在思考中...';
+    thread.appendChild(t);
+  }
+
+  try {
+    const { data, error } = await client.functions.invoke('ai-reply', {
+      body: {
+        comment_id: commentId,
+        parent_reply_id: last ? last.id : null,
+        user_message: msg,
+      },
+    });
+    if (data && data.reply && !data.error) {
+      const reply = {
+        id: data.reply_id || ('tmp-' + Date.now()),
+        comment_id: commentId,
+        user_message: msg,
+        reply_text: data.reply,
+        round: data.round || (last ? last.round + 1 : 1),
+        created_at: new Date().toISOString(),
+      };
+      appendReplyToComment(commentId, reply);
+    } else {
+      showToast('AI 回覆失敗，請重試', 'error');
+    }
+  } catch (e) {
+    console.error(e);
+    showToast('網絡錯誤，請檢查連接', 'error');
+  } finally {
+    const t = document.getElementById(thinkingId);
+    if (t) t.remove();
+    if (input) { input.value = ''; input.blur(); }
+    const row = document.getElementById('followup-' + commentId);
+    if (row) row.classList.remove('show');
+    if (btn) { btn.disabled = false; btn.textContent = '發送'; }
   }
 }
 
 // 更新留言的 AI 回覆（不重載全部）
-function updateCommentAIReplyInUI(commentId, aiReply, repliedAt) {
-  const commentEl = document.getElementById(`comment-${commentId}`);
-  if (!commentEl) {
-    // 找不到元素，可能是新留言還沒添加到 UI，重載全部
-    loadComments();
-    return;
-  }
-  
-  // 檢查是否已經有 AI 回覆區域
-  let aiReplyBox = commentEl.querySelector('.ai-reply-box');
-  
-  if (!aiReplyBox) {
-    // 還沒有 AI 回覆，創建一個
-    aiReplyBox = document.createElement('div');
-    aiReplyBox.className = 'ai-reply-box';
-    aiReplyBox.innerHTML = `
-      <div class="comment-row">
-        <div class="c-avatar sushi"></div>
-        <div class="c-body">
-          <div class="c-header">
-            <span class="c-name">蘇軾<span class="ai-badge">AI</span></span>
-            <span class="c-time">${fmtT(repliedAt)}</span>
-          </div>
-          <div class="c-text">${esc(aiReply).replace(/\n/g,'<br>')}</div>
-        </div>
-      </div>
-    `;
-    commentEl.appendChild(aiReplyBox);
-  } else {
-    // 已經有 AI 回覆，更新內容
-    const cText = aiReplyBox.querySelector('.c-text');
-    const cTime = aiReplyBox.querySelector('.c-time');
-    if (cText) cText.innerHTML = esc(aiReply).replace(/\n/g,'<br>');
-    if (cTime) cTime.textContent = fmtT(repliedAt);
-  }
-  
-  // 視覺反饋：AI 回覆區域高亮 2 秒
-  aiReplyBox.style.backgroundColor = '#f0f4ff';
-  aiReplyBox.style.transition = 'background-color 2s';
-  setTimeout(() => {
-    aiReplyBox.style.backgroundColor = '';
-  }, 2000);
-}
+function updateCommentAIReplyInUI() { /* deprecated: 多輪對話改用 appendReplyToComment */ }
 
 // ============================================================
 // 不當內容過濾器（前端攔截）
@@ -1020,24 +1240,26 @@ function containsProfanity(text) {
 }
 
 // ========== 提交留言 ==========
+// ========== 提交留言（帶 post_id） ==========
 async function submitComment() {
   const input = document.getElementById('commentInput');
   const content = input.value.trim();
   if (!content) return;
   if (!currentUserName) { showToast('請先輸入姓名', 'error'); return; }
+  if (!currentPostId) { showToast('請先選擇作品', 'error'); return; }
   // 不當內容檢查
   if (containsProfanity(content)) {
     showToast('留言內容不當，請使用文明用語 🙏', 'error');
     input.focus();
     return;
   }
-  
+
   const btn = document.getElementById('submitBtn');
   btn.disabled = true; btn.textContent = '發送中...';
 
   try {
     const { data, error } = await client.from('comments')
-      .insert([{ student_name: currentUserName, content }])
+      .insert([{ student_name: currentUserName, content, post_id: currentPostId, is_replying: true }])
       .select();
 
     if (error) { showToast('發送失敗，請重試', 'error'); btn.disabled=false; btn.textContent='發送'; return; }
@@ -1046,18 +1268,10 @@ async function submitComment() {
     btn.disabled = false; btn.textContent='發送';
     showToast('留言發送成功！', 'success');
 
-    // 立即刷新評論列表（確保新留言顯示）
-    loadComments();
-
-    if (data && data[0]) { 
-      // 顯示 AI 思考中提示
-      const thinkingId = 'thinking-' + data[0].id;
-      const thinkingDiv = document.createElement('div');
-      thinkingDiv.id = thinkingId;
-      thinkingDiv.className = 'ai-thinking';
-      thinkingDiv.innerHTML = '<span class="thinking-dot">💭</span> 诗人正在思考中...';
-      thinkingDiv.style.cssText = 'color:#999;font-size:12px;margin-top:4px;font-style:italic;';
-      document.getElementById('commentsList').appendChild(thinkingDiv);
+    if (data && data[0]) {
+      // 先插入留言卡片到 UI（Realtime 也會推，但本地先顯示）
+      addCommentToUI(data[0]);
+      // 呼叫 Edge Function 產生第 1 輪回覆
       triggerAI(data[0]);
     }
   } catch(e) {
@@ -1065,114 +1279,45 @@ async function submitComment() {
   }
 }
 
-// ========== AI 回覆 ==========
-// 蘇軾 System Prompt（用於直接呼叫 DeepSeek 或智能匹配）
-const SU_SHI_PROMPT_CONTEXT = `你是宋代文人蘇軾（東坡居士）。
-性格：豁達樂觀、幽默風趣、思念弟弟蘇轍（子由）、熱愛美食美酒。
-背景：1076年中秋在密州，大醉後寫下《水調歌頭·明月幾時有》，思念七年未見的子由。
-回覆風格：繁體中文、文言白話夾雜、50-150字、適當引用詩詞、像親切長輩。`;
-
-// 智能回覆模板已移至 DB（reply_templates 表）
-// 前端會透過 loadTemplatesFromDB() 載入並快取在 dbSmartReplies 和 dbGenericReplies
-// 內建最終 fallback（DB 和 API 都失敗時）
-const BUILTIN_GENERIC = [
-  '諸位安好！月色甚美，可願與吾共賞此夜？🌙',
-  '哈哈，甚好甚好！諸位以為如何？',
-  '月圓之夜，思念故人。諸位可有感觸？',
-  '人生如月，有圓有缺。且珍惜當下吧！',
-];
-const BUILTIN_SMART = [
-  { keywords: ['心情', '感覺'], reply: '哈哈，老夫近日尚可。諸位近況如何？' },
-  { keywords: ['做什麼', '幹嘛'], reply: '方才獨酌至微醺，忽見明月，便想起子由。' },
-];
-
+// ========== AI 回覆（呼叫 ai-reply Edge Function，第 1 輪） ==========
 async function triggerAI(comment) {
-  console.log('🤖 開始呼叫 AI...', comment);
-  
-  // 策略1：使用 Supabase Client 呼叫 Edge Function（避免 CORS）
+  console.log('🤖 開始呼叫 AI（第 1 輪）...', comment);
+  // 顯示「思考中」
+  const thread = document.getElementById('thread-' + comment.id);
+  const thinkingId = 'thinking-first-' + comment.id;
+  if (thread) {
+    const t = document.createElement('div');
+    t.id = thinkingId;
+    t.className = 'ai-thinking';
+    t.style.cssText = 'color:#999;font-size:12px;margin-top:4px;font-style:italic;';
+    t.innerHTML = '💭 ' + getCurrentPoetName() + ' 正在思考中...';
+    thread.appendChild(t);
+  }
   try {
-    const { data, error } = await client.functions.invoke('su-shi-reply', {
-      body: { record: comment },
+    const { data, error } = await client.functions.invoke('ai-reply', {
+      body: { comment_id: comment.id },
     });
-    console.log('🤖 Edge Function 回應:', JSON.stringify(data), error ? JSON.stringify(error) : '');
-    
-    if (data?.reply && !data.error) {
-      console.log(`🤖 ✅ 使用 Edge Function (DeepSeek AI) 回覆: ${data.reply.substring(0, 50)}...`);
-      await writeReply(comment.id, data.reply, 'DeepSeek AI (EF)');
-      return;
+    if (data && data.reply && !data.error) {
+      const reply = {
+        id: data.reply_id || ('tmp-' + Date.now()),
+        comment_id: comment.id,
+        user_message: comment.content,
+        reply_text: data.reply,
+        round: data.round || 1,
+        created_at: new Date().toISOString(),
+      };
+      appendReplyToComment(comment.id, reply);
+    } else if (error) {
+      console.warn('⚠️ Edge Function 錯誤:', error);
+      showToast('AI 回覆失敗，請重試', 'error');
     }
-    if (error) console.warn('⚠️ Edge Function 返回錯誤:', error);
   } catch(e) {
-    console.warn('⚠️ Edge Function 調用失敗:', e.message || e);
+    console.warn('⚠️ Edge Function 調用失敗:', e);
+    showToast('AI 回覆失敗，請重試', 'error');
+  } finally {
+    const t = document.getElementById(thinkingId);
+    if (t) t.remove();
   }
-
-  // 策略2：使用 DB 智能匹配回覆
-  const smartMatch = getSmartReplyFromDB(comment.content);
-  if (smartMatch) {
-    console.log('💬 使用 DB 智能匹配回覆:', smartMatch);
-    await writeReply(comment.id, smartMatch, 'DB Smart Match');
-    return;
-  }
-
-  // 策略3：隨機 DB 通用回覆
-  if (dbGenericReplies.length > 0) {
-    const generic = dbGenericReplies[Math.floor(Math.random() * dbGenericReplies.length)];
-    console.log('💬 使用 DB 通用回覆:', generic);
-    await writeReply(comment.id, generic, 'DB Generic Fallback');
-    return;
-  }
-
-  // 最終 fallback：內建模板
-  const fallback = BUILTIN_GENERIC[Math.floor(Math.random() * BUILTIN_GENERIC.length)];
-  console.log('💬 使用內建通用回覆:', fallback);
-  await writeReply(comment.id, fallback, 'Builtin Fallback');
-}
-
-// 根據留言內容智能匹配回覆（從 DB 模板）
-function getSmartReplyFromDB(content) {
-  const lower = content.toLowerCase();
-  // 先試 DB 模板
-  if (dbSmartReplies.length > 0) {
-    for (const item of dbSmartReplies) {
-      if (item.keywords.some(kw => lower.includes(kw))) {
-        return item.reply;
-      }
-    }
-  }
-  // 再試內建模板
-  for (const item of BUILTIN_SMART) {
-    if (item.keywords.some(kw => lower.includes(kw))) {
-      return item.reply;
-    }
-  }
-  return null;
-}
-
-// 寫入 AI 回覆到數據庫（三重保證）
-async function writeReply(id, reply, source) {
-  console.log(`✍️ 寫入回覆 [${source}]:`, reply);
-  
-  // 統一使用 Supabase JS Client（避免 CORS 問題）
-  try {
-    const { error } = await client.from('comments')
-      .update({ ai_reply: reply, replied_at: new Date().toISOString(), is_replying: false })
-      .eq('id', id);
-    if (!error) { 
-      console.log(`✅ 回覆已寫入 [${source}]`); 
-      // 刷新評論列表以顯示 AI 回覆
-      setTimeout(() => loadComments(), 500);
-      return; 
-    }
-    console.error(`❌ 寫入失敗:`, error);
-  } catch(e) {
-    console.error(`❌ 寫入異常:`, e);
-  }
-}
-
-// 舊版 fallback 保留兼容
-async function fallback(id) {
-  const reply = GENERIC_REPLIES[Math.floor(Math.random() * GENERIC_REPLIES.length)];
-  await writeReply(id, reply, 'Legacy Fallback');
 }
 
 // ========== 教師後台 ==========
@@ -1196,22 +1341,35 @@ async function loadTComments() {
   const c = document.getElementById('teacherContent');
   c.innerHTML = '<p style="color:#999;">載入中...</p>';
   try {
-    const { data, err } = await client.from('comments').select('*').order('created_at',{ascending:false});
+    const { data, err } = await client.from('comments')
+      .select('*, posts(title, poets(name))').order('created_at',{ascending:false});
     if (err || !data||!data.length) { c.innerHTML='<p style="color:#999;">還沒有留言</p>'; return; }
+    // 取得每則留言最新一輪 AI 回覆（T030：顯示詩人/作品上下文）
+    const ids = data.map(d=>d.id);
+    const replyMap = {}; const replyIdMap = {};
+    if (ids.length) {
+      const { data: reps } = await client.from('ai_replies').select('*').in('comment_id',ids).order('round',{ascending:true});
+      (reps||[]).forEach(r => { replyMap[r.comment_id] = r.reply_text; replyIdMap[r.comment_id] = r.id; });
+    }
+    window.__replyIdMap = replyIdMap;
     c.innerHTML = `
       <div style="margin-bottom:12px;">
         <button class="t-btn" onclick="exportCSV()">📥 匯出 CSV</button>
         <button class="t-btn danger" onclick="deleteAll()">🗑️ 刪除全部</button>
       </div>
       <div style="max-height:50vh;overflow-y:auto;">
-        ${data.map(d=>`
-          <div style="padding:10px;border-bottom:1px solid #f0f0f0;">
-            <strong>${esc(d.student_name)}</strong><span style="color:#999;font-size:12px;margin-left:6px;">${fmtT(d.created_at)}</span>
+        ${data.map(d=>{
+          const poetName = d.posts && d.posts.poets ? d.posts.poets.name : '—';
+          const postTitle = d.posts ? d.posts.title : '—';
+          const aiText = replyMap[d.id];
+          return `<div style="padding:10px;border-bottom:1px solid #f0f0f0;">
+            <div><strong>${esc(d.student_name)}</strong><span style="color:#999;font-size:12px;margin-left:6px;">${fmtT(d.created_at)}</span></div>
+            <div class="t-ctx">📜 ${esc(poetName)} · 《${esc(postTitle)}》</div>
             <p style="margin:4px 0;font-size:13px;">${esc(d.content)}</p>
-            ${d.ai_reply?`<p style="color:#576b95;font-size:12px;">💬 <span id="ai-reply-text-${d.id}">${esc(d.ai_reply)}</span> <button class="t-btn" style="font-size:11px;padding:2px 8px;" onclick="editAIReply('${d.id}')">編輯</button> <button class="t-btn" style="font-size:11px;padding:2px 8px;display:none;" id="ai-save-btn-${d.id}" onclick="saveAIReply('${d.id}')">保存</button> <button class="t-btn" style="font-size:11px;padding:2px 8px;display:none;" id="ai-cancel-btn-${d.id}" onclick="cancelAIReply('${d.id}')">取消</button></p>`:`<p style="color:#ccc;font-size:12px;">尚未回覆</p>`}
+            ${aiText?`<p style="color:#576b95;font-size:12px;">💬 <span id="ai-reply-text-${d.id}">${esc(aiText)}</span> <button class="t-btn" style="font-size:11px;padding:2px 8px;" onclick="editAIReply('${d.id}')">編輯</button> <button class="t-btn" style="font-size:11px;padding:2px 8px;display:none;" id="ai-save-btn-${d.id}" onclick="saveAIReply('${d.id}')">保存</button> <button class="t-btn" style="font-size:11px;padding:2px 8px;display:none;" id="ai-cancel-btn-${d.id}" onclick="cancelAIReply('${d.id}')">取消</button></p>`:`<p style="color:#ccc;font-size:12px;">尚未回覆</p>`}
             <button class="t-btn danger" onclick="delOne('${d.id}')">刪除</button>
-          </div>
-        `).join('')}
+          </div>`;
+        }).join('')}
       </div>`;
   } catch(e) { c.innerHTML='<p>載入錯誤</p>'; }
 }
@@ -1234,14 +1392,23 @@ async function delOne(id) { if(!confirm('確定刪除？'))return; await client.
 async function deleteAll() { if(!confirm('確定刪除全部？不可復原！'))return; await client.from('comments').delete().neq('id','00000000-0000-0000-0000-000000000000'); loadTComments(); }
 
 function exportCSV() {
-  client.from('comments').select('*').order('created_at',{ascending:true}).then(({data,err})=>{
+  client.from('comments').select('*, posts(title, poets(name))').order('created_at',{ascending:true}).then(async ({data,err})=>{
     if(err){alert('匯出失敗');return;}
-    const csv=[['時間','學生','留言','AI回覆','回覆時間'],...data.map(d=>[
-      fmtT(d.created_at),d.student_name,d.content,d.ai_reply||'',d.replied_at?fmtT(d.replied_at):''
-    ])].map(r=>r.map(c=>`"${c}"`).join(',')).join('\n');
+    const rows = data || [];
+    const ids = rows.map(d=>d.id);
+    const replyMap = {};
+    if (ids.length) {
+      const { data: reps } = await client.from('ai_replies').select('*').in('comment_id',ids).order('round',{ascending:true});
+      (reps||[]).forEach(r => { replyMap[r.comment_id] = r.reply_text; });
+    }
+    const csv=[['時間','學生','詩人','作品','留言','AI回覆','回覆時間'],...rows.map(d=>{
+      const poetName = d.posts && d.posts.poets ? d.posts.poets.name : '';
+      const postTitle = d.posts ? d.posts.title : '';
+      return [fmtT(d.created_at), d.student_name, poetName, postTitle, d.content, replyMap[d.id]||'', d.replied_at?fmtT(d.replied_at):''];
+    })].map(r=>r.map(c=>`"${c}"`).join(',')).join('\n');
     const blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8;'});
     const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
-    a.download=`蘇軾朋友圈_${new Date().toISOString().slice(0,10)}.csv`; a.click(); URL.revokeObjectURL(a.href);
+    a.download=`多詩人朋友圈_${new Date().toISOString().slice(0,10)}.csv`; a.click(); URL.revokeObjectURL(a.href);
   });
 }
 
@@ -1249,6 +1416,8 @@ function exportCSV() {
 let originalAIReply = {};
 
 function editAIReply(id) {
+  const rid = (window.__replyIdMap && window.__replyIdMap[id]) || null;
+  if (!rid) { alert('尚無 AI 回覆可編輯'); return; }
   const textSpan = document.getElementById('ai-reply-text-' + id);
   if (!textSpan) return;
   originalAIReply[id] = textSpan.textContent;
@@ -1259,12 +1428,14 @@ function editAIReply(id) {
 }
 
 async function saveAIReply(id) {
+  const rid = (window.__replyIdMap && window.__replyIdMap[id]) || null;
+  if (!rid) return;
   const textarea = document.getElementById('ai-reply-edit-' + id);
   if (!textarea) return;
   const newReply = textarea.value.trim();
   if (!newReply) { alert('回覆內容不能為空'); return; }
   try {
-    const { error } = await client.from('comments').update({ ai_reply: newReply, replied_at: new Date().toISOString() }).eq('id', id);
+    const { error } = await client.from('ai_replies').update({ reply_text: newReply }).eq('id', rid);
     if (error) { alert('保存失敗: ' + error.message); return; }
     const container = textarea.parentNode;
     container.innerHTML = '💬 <span id="ai-reply-text-' + id + '">' + esc(newReply) + '</span> <button class="t-btn" style="font-size:11px;padding:2px 8px;" onclick="editAIReply(\'' + id + '\')">編輯</button> <button class="t-btn" style="font-size:11px;padding:2px 8px;display:none;" id="ai-save-btn-' + id + '" onclick="saveAIReply(\'' + id + '\')">保存</button> <button class="t-btn" style="font-size:11px;padding:2px 8px;display:none;" id="ai-cancel-btn-' + id + '" onclick="cancelAIReply(\'' + id + '\')">取消</button>';
@@ -1308,20 +1479,6 @@ function fmtT(iso){
   const h=String(d.getHours()).padStart(2,'0');
   const m=String(d.getMinutes()).padStart(2,'0');
   return y+'-'+M+'-'+D+' '+h+':'+m;
-}
-
-// ========== DB 模板快取 ==========
-let dbGenericReplies = [];
-let dbSmartReplies = [];
-
-async function loadTemplatesFromDB() {
-  try {
-    const { data, error } = await client.from('reply_templates').select('*');
-    if (error) { console.warn('⚠️ 讀取模板失敗，使用內建模板'); return; }
-    dbGenericReplies = (data || []).filter(t => t.type === 'generic').map(t => t.reply);
-    dbSmartReplies = (data || []).filter(t => t.type === 'smart').map(t => ({ keywords: (t.keyword||'').split(/[,，]/).map(k=>k.trim()).filter(Boolean), reply: t.reply }));
-    console.log('✅ 已載入模板：固定 ' + dbGenericReplies.length + ' 條，智能 ' + dbSmartReplies.length + ' 條');
-  } catch(e) { console.warn('⚠️ 讀取模板異常', e); }
 }
 
 // ========== 回覆模板管理 ==========

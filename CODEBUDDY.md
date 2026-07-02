@@ -1,31 +1,33 @@
 # CODEBUDDY.md - Project Context for AI Agent
 
 <!-- SPECKIT START -->
-**Current Feature**: 001-ai-poet-friends (AI 古代诗人朋友圈教学小程序)
-**Current Plan**: `specs/001-ai-poet-friends/plan.md` (v2.0, updated 2026-07-01)
-**Status**: Planning complete, ready for implementation
+**Current Feature**: 002-multi-poet (多诗人 + 多作品 + AI 多轮对话)
+**Current Plan**: `specs/002-multi-poet/plan.md` (v1.0, created 2026-07-01)
+**Status**: Planning complete (Phase 0/1), ready for implementation
+**Depends on**: 001-ai-poet-friends (Phase 1, deployed to production)
 
 ## Active Context
-- Database schema: 2 tables (`comments`, `reply_templates`)
-- Production Supabase: `Sarah_Chinese_P1` (pzatgmavjvrastnumxty)
-- Testing Supabase: `cais-chinese-p1-sarah-testing` (synced 2026-07-01)
-- Edge Function: `su-shi-reply` (Deployed to production)
-- Phase 1 Scope: Single poet (苏轼), single post, student + teacher roles
+- Phase 1: Deployed (苏轼 only, `su-shi-reply` Edge Function)
+- Phase 2 Scope: 4 poets (苏轼/李白/杜甫/李清照), multi-post, multi-turn AI
+- New tables: `poets`, `posts`, `ai_replies`
+- New Edge Function: `ai-reply` (generic, replaces `su-shi-reply`)
+- Migration: `002_multi_poet.sql` + `002_backfill.sql`
 
 ## Next Steps
 1. Review plan.md and confirm alignment with spec.md
-2. Execute tasks.md (start with P1 tasks)
-3. Validate implementation against quickstart.md scenarios
+2. Execute tasks.md starting with T022 (DB schema)
+3. Validate against quickstart.md scenarios A-D
 4. Deploy to testing branch, verify, then merge to main
 
-## Key Files
-- Spec: `specs/001-ai-poet-friends/spec.md`
-- Plan: `specs/001-ai-poet-friends/plan.md`
-- Tasks: `specs/001-ai-poet-friends/tasks.md`
-- Data Model: `specs/001-ai-poet-friends/data-model.md`
-- Quickstart: `specs/001-ai-poet-friends/quickstart.md`
-- Frontend: `index.html`
-- Edge Function: `edge-function.ts` (to be moved to `supabase/functions/su-shi-reply/index.ts`)
+## Key Files (Phase 2)
+- Spec: `specs/002-multi-poet/spec.md`
+- Plan: `specs/002-multi-poet/plan.md`
+- Tasks: `specs/002-multi-poet/tasks.md`
+- Data Model: `specs/002-multi-poet/data-model.md`
+- Quickstart: `specs/002-multi-poet/quickstart.md`
+- Research: `specs/002-multi-poet/research.md`
+- Frontend: `index.html` (to be modified)
+- Edge Function: `supabase/functions/ai-reply/index.ts` (new)
 <!-- SPECKIT END -->
 
 ---
