@@ -1,7 +1,6 @@
 // ============================================================
 // 教師後台操作代理（Edge Function）
 // 用途：教師後台的寫入操作（發布/隱藏詩人作品、違禁詞 CRUD）
-// 鑒權：簡單密碼驗證（與前端 TEACHER_PASSWORD 一致）
 //
 // 請求 body：
 //   { action: "toggle_publish", table: "poets"|"posts", id: uuid }
@@ -12,22 +11,31 @@
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? Deno.env.get("SERVICE_ROLE_KEY") ?? "";
+const ALLOWED_ORIGINS = (Deno.env.get("ALLOWED_ORIGINS") ?? "")
+  .split(",").map(s => s.trim()).filter(Boolean);
 
-const corsHeadersFromLastReq: Record<string, string> = {
+function corsHeaders(req: Request): Record<string, string> {
+  const origin = req.headers.get("origin") || "";
+  const allow = ALLOWED_ORIGINS.length
+    ? (ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0])
+    : "*";
+  return {
+    "Access-Control-Allow-Origin": allow,
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization, apikey, x-client-info",
+  };
+}
+
+let lastCorsHeaders: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type, Authorization, apikey",
 };
 
-function corsHeaders(req: Request): Record<string, string> {
-  const origin = req.headers.get("origin") || "*";
-  return { ...corsHeadersFromLastReq, "Access-Control-Allow-Origin": origin };
-}
-
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { "Content-Type": "application/json", ...corsHeadersFromLastReq },
+    headers: { "Content-Type": "application/json", ...lastCorsHeaders },
   });
 }
 
@@ -44,7 +52,7 @@ async function supabaseRest(path: string, init: RequestInit): Promise<Response> 
 }
 
 Deno.serve(async (req: Request) => {
-  corsHeadersFromLastReq = Object.assign(corsHeadersFromLastReq, corsHeaders(req));
+  lastCorsHeaders = corsHeaders(req);
 
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 204, headers: corsHeaders(req) });
@@ -65,13 +73,11 @@ Deno.serve(async (req: Request) => {
         if (!["poets", "posts"].includes(table) || !id) {
           return jsonResponse({ error: "缺少 table 或 id" }, 400);
         }
-        // 先讀取當前值
         const getRes = await supabaseRest(`${table}?id=eq.${id}&select=is_published`, { method: "GET" });
         if (!getRes.ok) return jsonResponse({ error: "讀取失敗" }, 500);
         const rows = await getRes.json();
         if (!rows?.length) return jsonResponse({ error: "記錄不存在" }, 404);
         const current = rows[0].is_published;
-        // 切換
         const updRes = await supabaseRest(`${table}?id=eq.${id}`, {
           method: "PATCH",
           body: JSON.stringify({ is_published: !current }),
