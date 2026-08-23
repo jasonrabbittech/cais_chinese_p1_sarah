@@ -118,12 +118,12 @@ jobs:
           npm install -g supabase
           supabase --version
 
-      - name: Deploy Edge Function to Production Supabase
+      - name: Deploy Edge Functions to Production Supabase
         run: |
-          echo "🚀 部署 Edge Function (ai-reply) 到 Production Supabase..."
-          supabase functions deploy ai-reply \
-            --project-ref ${{ secrets.PROD_SUPABASE_PROJECT_REF }}
-          echo "✅ Edge Function 已部署到 Production 環境"
+          echo "🚀 部署 Edge Functions 到 Production Supabase..."
+          supabase functions deploy ai-reply --project-ref ${{ secrets.PROD_SUPABASE_PROJECT_REF }}
+          supabase functions deploy teacher-ops --project-ref ${{ secrets.PROD_SUPABASE_PROJECT_REF }}
+          echo "✅ Edge Functions 已部署到 Production 環境"
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 

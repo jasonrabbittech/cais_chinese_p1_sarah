@@ -1512,18 +1512,27 @@ async function loadTContent() {
   } catch(e) { c.innerHTML='<p>載入錯誤: ' + esc(e.message) + '</p>'; }
 }
 
-// ========== 內容管理全局操作函數（onclick 需要全域可見） ==========
+// ========== 內容管理全局操作函數（通過 teacher-ops Edge Function 寫入） ==========
 async function togglePub(table, id, current) {
-  await client.from(table).update({ is_published: !current }).eq('id', id);
+  const { error } = await client.functions.invoke('teacher-ops', {
+    body: { action: 'toggle_publish', table, id },
+  });
+  if (error) { alert('操作失敗: ' + (error.message || '')); return; }
   loadTContent();
 }
 async function toggleWord(id, current) {
-  await client.from('profanity_words').update({ is_active: !current }).eq('id', id);
+  const { error } = await client.functions.invoke('teacher-ops', {
+    body: { action: 'toggle_word', id },
+  });
+  if (error) { alert('操作失敗: ' + (error.message || '')); return; }
   loadTContent();
 }
 async function deleteWord(id) {
   if (!confirm('確定刪除此違禁詞？')) return;
-  await client.from('profanity_words').delete().eq('id', id);
+  const { error } = await client.functions.invoke('teacher-ops', {
+    body: { action: 'delete_word', id },
+  });
+  if (error) { alert('操作失敗: ' + (error.message || '')); return; }
   loadTContent();
 }
 async function addWord() {
@@ -1531,7 +1540,9 @@ async function addWord() {
   const word = (input?.value || '').trim();
   if (!word) { alert('請輸入詞語'); return; }
   const isRegex = document.getElementById('newWordIsRegex')?.checked || false;
-  const { error } = await client.from('profanity_words').insert([{ word, is_regex: isRegex, is_active: true }]);
+  const { error } = await client.functions.invoke('teacher-ops', {
+    body: { action: 'add_word', word, is_regex },
+  });
   if (error) { alert('新增失敗: ' + (error.message || '可能已存在')); return; }
   loadTContent();
 }
