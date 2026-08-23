@@ -1,6 +1,6 @@
 -- ============================================================
 -- Sarah AI Sushi — Feature 002: Backfill Migration
--- Migration: 002_backfill.sql
+-- Migration: 003_backfill.sql（原 002_backfill.sql，重命名以确保在 002_multi_poet 之后执行）
 -- Depends on: 002_multi_poet.sql
 -- Created: 2026-07-01
 --

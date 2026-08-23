@@ -23,7 +23,7 @@ ALTER TABLE public.comments ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Public read access" ON public.comments FOR SELECT USING (true);
 
 -- Policy: Allow public insert (students can post comments)
-CREATE POLICY "Public insert access" ON public.comments FOR INSERT WITH (true);
+CREATE POLICY "Public insert access" ON public.comments FOR INSERT WITH CHECK (true);
 
 -- Policy: Allow service role full access (for Edge Function)
 CREATE POLICY "Service role full access" ON public.comments FOR ALL USING (auth.role() = 'service_role');

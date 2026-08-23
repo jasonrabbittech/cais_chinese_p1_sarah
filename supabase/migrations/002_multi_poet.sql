@@ -156,7 +156,7 @@ CREATE INDEX IF NOT EXISTS idx_ai_replies_round ON public.ai_replies (comment_id
 ALTER TABLE public.ai_replies ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Public read access" ON public.ai_replies FOR SELECT USING (true);
 CREATE POLICY "Service role insert" ON public.ai_replies FOR INSERT
-  WITH (auth.role() = 'service_role');
+  WITH CHECK (auth.role() = 'service_role');
 CREATE POLICY "Service role full access" ON public.ai_replies FOR ALL
   USING (auth.role() = 'service_role');
 
@@ -180,7 +180,7 @@ CREATE INDEX IF NOT EXISTS idx_ai_logs_created_at ON public.ai_interaction_logs 
 
 ALTER TABLE public.ai_interaction_logs ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Service role insert" ON public.ai_interaction_logs FOR INSERT
-  WITH (auth.role() = 'service_role');
+  WITH CHECK (auth.role() = 'service_role');
 CREATE POLICY "Service role full access" ON public.ai_interaction_logs FOR ALL
   USING (auth.role() = 'service_role');
 
