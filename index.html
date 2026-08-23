@@ -812,7 +812,7 @@ document.addEventListener('click', e => {
 });
 
 // ========== 姓名 ==========
-function submitName() {
+async function submitName() {
   const n = document.getElementById('nameInput').value.trim();
   if (!n) { showLoginError('請輸入姓名'); return; }
   if (n.length < 2) { showLoginError('姓名至少需要2個字'); return; }
