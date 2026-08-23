@@ -1476,28 +1476,6 @@ async function loadTContent() {
     const { data: badWords, err: bErr } = await client.from('profanity_words').select('*').order('word');
     if (bErr && bErr.code !== '42P01') throw bErr; // 表不存在時忽略（遷移尚未執行）
 
-    const togglePub = (table, id, current) => {
-      client.from(table).update({ is_published: !current }).eq('id', id).then(() => loadTContent());
-    };
-
-    const toggleWord = (id, current) => {
-      client.from('profanity_words').update({ is_active: !current }).eq('id', id).then(() => loadTContent());
-    };
-
-    const deleteWord = (id) => {
-      if (!confirm('確定刪除此違禁詞？')) return;
-      client.from('profanity_words').delete().eq('id', id).then(() => loadTContent());
-    };
-
-    const addWord = () => {
-      const input = document.getElementById('newBadWord');
-      const word = (input?.value || '').trim();
-      if (!word) { alert('請輸入詞語'); return; }
-      const isRegex = document.getElementById('newWordIsRegex')?.checked || false;
-      client.from('profanity_words').insert([{ word, is_regex: isRegex, is_active: true }]).then(() => loadTContent())
-        .catch(() => alert('新增失敗，可能已存在'));
-    };
-
     c.innerHTML = `
       <h3 style="margin-bottom:8px;">📚 詩人管理</h3>
       <div style="max-height:20vh;overflow-y:auto;margin-bottom:16px;">
@@ -1532,6 +1510,30 @@ async function loadTContent() {
       </div>
       <p style="color:#aaa;font-size:11px;margin-top:8px;">💡 隱藏詩人/作品後學生端不可見。違禁詞會同時在前端和後端生效。</p>`;
   } catch(e) { c.innerHTML='<p>載入錯誤: ' + esc(e.message) + '</p>'; }
+}
+
+// ========== 內容管理全局操作函數（onclick 需要全域可見） ==========
+async function togglePub(table, id, current) {
+  await client.from(table).update({ is_published: !current }).eq('id', id);
+  loadTContent();
+}
+async function toggleWord(id, current) {
+  await client.from('profanity_words').update({ is_active: !current }).eq('id', id);
+  loadTContent();
+}
+async function deleteWord(id) {
+  if (!confirm('確定刪除此違禁詞？')) return;
+  await client.from('profanity_words').delete().eq('id', id);
+  loadTContent();
+}
+async function addWord() {
+  const input = document.getElementById('newBadWord');
+  const word = (input?.value || '').trim();
+  if (!word) { alert('請輸入詞語'); return; }
+  const isRegex = document.getElementById('newWordIsRegex')?.checked || false;
+  const { error } = await client.from('profanity_words').insert([{ word, is_regex: isRegex, is_active: true }]);
+  if (error) { alert('新增失敗: ' + (error.message || '可能已存在')); return; }
+  loadTContent();
 }
 
 async function delOne(id) { if(!confirm('確定刪除？'))return; await client.from('comments').delete().eq('id',id); loadTComments(); }
