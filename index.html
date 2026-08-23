@@ -639,6 +639,7 @@
       <div class="t-tabs">
         <button class="t-tab active" onclick="switchTab('comments',this)">所有留言</button>
         <button class="t-tab" onclick="switchTab('stats',this)">統計</button>
+        <button class="t-tab" onclick="switchTab('content',this)">內容管理</button>
         <button class="t-tab" onclick="switchTab('templates',this)">回覆模板</button>
       </div>
       <div id="teacherContent"></div>
@@ -757,6 +758,7 @@ window.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('nameModal').style.display = 'none';
     await loadPoets();       // 載入詩人 → 作品 → 留言 → Realtime
   }
+  loadCustomBadWords();      // 載入教師自訂違禁詞
   loadLikeState();
 });
 
@@ -825,6 +827,7 @@ async function submitName() {
   currentUserName = n;
   localStorage.setItem('su_shi_name', n);
   document.getElementById('nameModal').style.display = 'none';
+  await loadCustomBadWords();
   await loadPoets();
 }
 
@@ -940,7 +943,7 @@ function getCurrentPoetName() {
 // ========== 多詩人：載入與切換（T027） ==========
 async function loadPoets() {
   try {
-    const { data, error } = await client.from('poets').select('*').order('name');
+    const { data, error } = await client.from('poets').select('*').eq('is_published', true).order('name');
     if (error) { console.error(error); showToast('載入詩人失敗', 'error'); return; }
     poets = data || [];
     renderPoetTabs();
@@ -959,7 +962,7 @@ function renderPoetTabs() {
 async function selectPoet(poetId) {
   currentPoetId = poetId;
   document.querySelectorAll('.poet-tab').forEach(t => t.classList.toggle('active', t.dataset.poet === poetId));
-  const { data, error } = await client.from('posts').select('*').eq('poet_id', poetId).order('created_at');
+  const { data, error } = await client.from('posts').select('*').eq('poet_id', poetId).eq('is_published', true).order('created_at');
   posts = (data || []).filter(p => p.poet_id === poetId);
   renderPostSelect();
   if (posts.length) {
@@ -1232,13 +1235,28 @@ const PROFANITY_REGEX = [
 
 function containsProfanity(text) {
   const lower = text.toLowerCase();
+  // 硬編碼默認詞
   for (const word of PROFANITY_WORDS) {
     if (lower.includes(word.toLowerCase())) return true;
   }
   for (const re of PROFANITY_REGEX) {
     if (re.test(text)) return true;
   }
+  // 資料庫自定義詞（教師後台管理）
+  for (const w of (window.__customBadWords || [])) {
+    if (!w.is_active) continue;
+    if (w.is_regex) { try { if (new RegExp(w.word, 'gi').test(text)) return true; } catch(e){} }
+    else if (lower.includes(w.word.toLowerCase())) return true;
+  }
   return false;
+}
+
+/** 載入教師自訂違禁詞（頁面初始化時調用） */
+async function loadCustomBadWords() {
+  try {
+    const { data, error } = await client.from('profanity_words').select('*').eq('is_active', true);
+    if (!error && data) window.__customBadWords = data;
+  } catch(e) { /* 表可能尚未建立，忽略 */ }
 }
 
 // ========== 提交留言 ==========
@@ -1336,6 +1354,7 @@ function switchTab(tab, btn) {
   btn.classList.add('active');
   if (tab==='comments') loadTComments();
   else if (tab==='stats') loadTStats();
+  else if (tab==='content') loadTContent();
   else if (tab==='templates') loadTTemplates();
 }
 
@@ -1369,32 +1388,61 @@ async function loadTComments() {
     const { data, err } = await client.from('comments')
       .select('*, posts(title, poets(name))').order('created_at',{ascending:false});
     if (err || !data||!data.length) { c.innerHTML='<p style="color:#999;">還沒有留言</p>'; return; }
-    // 取得每則留言最新一輪 AI 回覆（T030：顯示詩人/作品上下文）
+    // 取得每則留言的完整對話線程（多輪）
     const ids = data.map(d=>d.id);
-    const replyMap = {}; const replyIdMap = {}; const replySourceMap = {};
+    const repliesByComment = {}; // { commentId: [replyRows...] }
+    const latestReplyMap = {}; const replyIdMap = {}; const replySourceMap = {};
     if (ids.length) {
       const { data: reps } = await client.from('ai_replies').select('*').in('comment_id',ids).order('round',{ascending:true});
-      (reps||[]).forEach(r => { replyMap[r.comment_id] = r.reply_text; replyIdMap[r.comment_id] = r.id; replySourceMap[r.comment_id] = r.source; });
+      (reps||[]).forEach(r => {
+        if (!repliesByComment[r.comment_id]) repliesByComment[r.comment_id] = [];
+        repliesByComment[r.comment_id].push(r);
+        latestReplyMap[r.comment_id] = r.reply_text;
+        replyIdMap[r.comment_id] = r.id;
+        replySourceMap[r.comment_id] = r.source;
+      });
     }
     window.__replyIdMap = replyIdMap;
+    // 渲染單條留言的完整對話線程
+    const renderThread = (d, replies) => {
+      let html = `<div style="padding:10px;border-bottom:1px solid #f0f0f0;">
+        <div><strong>${esc(d.student_name)}</strong><span style="color:#999;font-size:12px;margin-left:6px;">${fmtT(d.created_at)}</span></div>
+        <div class="t-ctx">📜 ${esc(d.posts?.poets?.name || '—')} · 《${esc(d.posts?.title || '—')}》</div>
+        <p style="margin:4px 0;font-size:13px;">${esc(d.content)}</p>`;
+      if (!replies || !replies.length) {
+        html += `<p style="color:#ccc;font-size:12px;">尚未回覆</p>`;
+      } else {
+        html += `<div style="margin-left:8px;border-left:2px solid #e8e8e8;padding-left:10px;margin-top:6px;">`;
+        replies.forEach((r, i) => {
+          // 第1輪：原始留言→AI回覆（不顯示 user_message，因為就是 d.content）
+          // 第N輪(N>1)：顯示學生追問 + AI回覆
+          if (i > 0 && r.user_message) {
+            html += `<div style="margin:6px 0;padding:6px;background:#fff8e1;border-radius:6px;font-size:12px;">
+              <span style="color:#e67e22;font-weight:500;">🙋 追問（第${r.round}輪）</span>
+              <p style="margin:2px 0;color:#555;">${esc(r.user_message)}</p>
+            </div>`;
+          }
+          html += `<div style="margin:6px 0;font-size:12px;">
+            <span style="color:#576b95;">💬 ${esc(r.reply_text)}</span>
+            ${replySourceBadge(r.source)}
+            ${i === replies.length - 1 ? `<button class="t-btn" style="font-size:11px;padding:2px 8px;" onclick="editAIReply('${d.id}')">編輯</button>
+            <button class="t-btn" style="font-size:11px;padding:2px 8px;display:none;" id="ai-save-btn-${d.id}" onclick="saveAIReply('${d.id}')">保存</button>
+            <button class="t-btn" style="font-size:11px;padding:2px 8px;display:none;" id="ai-cancel-btn-${d.id}" onclick="cancelAIReply('${d.id}')">取消</button>` : ''}
+            <span style="color:#bbb;font-size:10px;margin-left:4px;">第${r.round}輪</span>
+          </div>`;
+        });
+        html += `</div>`; // close thread
+      }
+      html += `<button class="t-btn danger" onclick="delOne('${d.id}')">刪除</button></div>`;
+      return html;
+    };
     c.innerHTML = `
       <div style="margin-bottom:12px;">
         <button class="t-btn" onclick="exportCSV()">📥 匯出 CSV</button>
         <button class="t-btn danger" onclick="deleteAll()">🗑️ 刪除全部</button>
       </div>
       <div style="max-height:50vh;overflow-y:auto;">
-        ${data.map(d=>{
-          const poetName = d.posts && d.posts.poets ? d.posts.poets.name : '—';
-          const postTitle = d.posts ? d.posts.title : '—';
-          const aiText = replyMap[d.id];
-          return `<div style="padding:10px;border-bottom:1px solid #f0f0f0;">
-            <div><strong>${esc(d.student_name)}</strong><span style="color:#999;font-size:12px;margin-left:6px;">${fmtT(d.created_at)}</span></div>
-            <div class="t-ctx">📜 ${esc(poetName)} · 《${esc(postTitle)}》</div>
-            <p style="margin:4px 0;font-size:13px;">${esc(d.content)}</p>
-            ${aiText?`<p style="color:#576b95;font-size:12px;">💬 <span id="ai-reply-text-${d.id}">${esc(aiText)}</span> ${replySourceBadge(replySourceMap[d.id])}<button class="t-btn" style="font-size:11px;padding:2px 8px;" onclick="editAIReply('${d.id}')">編輯</button> <button class="t-btn" style="font-size:11px;padding:2px 8px;display:none;" id="ai-save-btn-${d.id}" onclick="saveAIReply('${d.id}')">保存</button> <button class="t-btn" style="font-size:11px;padding:2px 8px;display:none;" id="ai-cancel-btn-${d.id}" onclick="cancelAIReply('${d.id}')">取消</button></p>`:`<p style="color:#ccc;font-size:12px;">尚未回覆</p>`}
-            <button class="t-btn danger" onclick="delOne('${d.id}')">刪除</button>
-          </div>`;
-        }).join('')}
+        ${data.map(d => renderThread(d, repliesByComment[d.id])).join('')}
       </div>`;
   } catch(e) { c.innerHTML='<p>載入錯誤</p>'; }
 }
@@ -1411,6 +1459,79 @@ async function loadTStats() {
       sorted.map(([n,c],i)=>`<div style="display:flex;justify-content:space-between;padding:10px;border-bottom:1px solid #f0f0f0;"><span>${i+1}. ${esc(n)}</span><strong>${c} 則</strong></div>`).join('')
     }`;
   } catch(e) { c.innerHTML='<p>載入錯誤</p>'; }
+}
+
+// ========== 內容管理（詩人/作品發布控制 + 違禁詞管理） ==========
+async function loadTContent() {
+  const c = document.getElementById('teacherContent');
+  c.innerHTML = '<p style="color:#999;">載入中...</p>';
+  try {
+    // 載入詩人列表
+    const { data: poets, err: pErr } = await client.from('poets').select('*').order('name');
+    if (pErr) throw pErr;
+    // 載入作品列表
+    const { data: posts, err: poErr } = await client.from('posts').select('*, poets(name)').order('created_at');
+    if (poErr) throw poErr;
+    // 載入違禁詞
+    const { data: badWords, err: bErr } = await client.from('profanity_words').select('*').order('word');
+    if (bErr && bErr.code !== '42P01') throw bErr; // 表不存在時忽略（遷移尚未執行）
+
+    const togglePub = (table, id, current) => {
+      client.from(table).update({ is_published: !current }).eq('id', id).then(() => loadTContent());
+    };
+
+    const toggleWord = (id, current) => {
+      client.from('profanity_words').update({ is_active: !current }).eq('id', id).then(() => loadTContent());
+    };
+
+    const deleteWord = (id) => {
+      if (!confirm('確定刪除此違禁詞？')) return;
+      client.from('profanity_words').delete().eq('id', id).then(() => loadTContent());
+    };
+
+    const addWord = () => {
+      const input = document.getElementById('newBadWord');
+      const word = (input?.value || '').trim();
+      if (!word) { alert('請輸入詞語'); return; }
+      const isRegex = document.getElementById('newWordIsRegex')?.checked || false;
+      client.from('profanity_words').insert([{ word, is_regex: isRegex, is_active: true }]).then(() => loadTContent())
+        .catch(() => alert('新增失敗，可能已存在'));
+    };
+
+    c.innerHTML = `
+      <h3 style="margin-bottom:8px;">📚 詩人管理</h3>
+      <div style="max-height:20vh;overflow-y:auto;margin-bottom:16px;">
+        ${(poets||[]).map(p => `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 8px;border-bottom:1px solid #f0f0f0;">
+          <div><span style="font-size:16px;margin-right:4px;">${esc(p.avatar_emoji)}</span><strong>${esc(p.name)}</strong> <span style="color:#999;font-size:11px;">${esc(p.dynasty)}</span></div>
+          <button class="t-btn" style="${p.is_published ? 'background:#2ecc71;' : 'background:#ccc;'}font-size:11px;padding:3px 10px;" onclick="togglePub('poets','${p.id}',${p.is_published})">${p.is_published ? '✅' : '⛔'}</button>
+        </div>`).join('') || '<p style="color:#999;">無數據</p>'}
+      </div>
+      <h3 style="margin-bottom:8px;">📜 作品管理</h3>
+      <div style="max-height:18vh;overflow-y:auto;margin-bottom:16px;">
+        ${(posts||[]).map(post => `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 8px;border-bottom:1px solid #f0f0f0;">
+          <div><strong>${esc(post.title)}</strong> <span style="color:#999;font-size:11px;">— ${esc(post.poets?.name || '—')}</span></div>
+          <button class="t-btn" style="${post.is_published ? 'background:#2ecc71;' : 'background:#ccc;'}font-size:11px;padding:3px 10px;" onclick="togglePub('posts','${post.id}',${post.is_published})">${post.is_published ? '✅' : '⛔'}</button>
+        </div>`).join('') || '<p style="color:#999;">無數據</p>'}
+      </div>
+      <h3 style="margin-bottom:8px;">🚫 違禁詞管理 <span style="font-weight:normal;color:#999;font-size:12px;">（學生留言過濾）</span></h3>
+      <div style="background:#fef9e7;padding:8px;border-radius:6px;margin-bottom:8px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+        <input type="text" id="newBadWord" placeholder="新增違禁詞..." style="flex:1;min-width:120px;padding:4px 8px;font-size:12px;border:1px solid #ddd;border-radius:4px;">
+        <label style="font-size:11px;display:flex;align-items:center;gap:3px;"><input type="checkbox" id="newWordIsRegex"> 正則</label>
+        <button class="t-btn" style="font-size:11px;padding:4px 12px;" onclick="addWord()">＋ 新增</button>
+      </div>
+      <div style="max-height:20vh;overflow-y:auto;">
+        ${(badWords||[]).map(w => `<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 8px;border-bottom:1px solid #f0f0f0;font-size:12px;">
+          <div><code style="background:#f5f5f5;padding:1px 4px;border-radius:3px;">${esc(w.word)}</code>
+          ${w.is_regex ? '<span style="color:#e67e22;font-size:10px;margin-left:4px;">正則</span>' : ''}
+          </div>
+          <div style="display:flex;gap:4px;">
+            <button class="t-btn" style="${w.is_active ? 'background:#2ecc71;' : 'background:#ccc;'}font-size:10px;padding:2px 8px;" onclick="toggleWord('${w.id}',${w.is_active})">${w.is_active ? '啟用' : '停用'}</button>
+            <button class="t-btn danger" style="font-size:10px;padding:2px 8px;" onclick="deleteWord('${w.id}')">刪</button>
+          </div>
+        </div>`).join('') || '<p style="color:#999;">無違禁詞（表可能尚未建立）</p>'}
+      </div>
+      <p style="color:#aaa;font-size:11px;margin-top:8px;">💡 隱藏詩人/作品後學生端不可見。違禁詞會同時在前端和後端生效。</p>`;
+  } catch(e) { c.innerHTML='<p>載入錯誤: ' + esc(e.message) + '</p>'; }
 }
 
 async function delOne(id) { if(!confirm('確定刪除？'))return; await client.from('comments').delete().eq('id',id); loadTComments(); }

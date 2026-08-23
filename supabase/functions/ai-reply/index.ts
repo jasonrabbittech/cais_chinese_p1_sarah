@@ -40,8 +40,33 @@ const PROFANITY_REGEX: RegExp[] = [
   /(靠{2,}|屌{2,}|幹{2,}|操{2,}|滾{2,}|笨{2,}|蠢{2,}|傻{2,})/gi,
 ];
 
+// 教師自訂違禁詞快取（懶加載，首次請求時從 DB 讀入）
+let customBadWordsCache: { word: string; is_regex: boolean; is_active: boolean }[] | null = null;
+let customBadWordsLoadedAt = 0;
+const CUSTOM_CACHE_TTL_MS = 60_000; // 1 分鐘刷新一次
+
+async function loadCustomBadWords(): Promise<{ word: string; is_regex: boolean; is_active: boolean }[]> {
+  const now = Date.now();
+  if (customBadWordsCache && (now - customBadWordsLoadedAt) < CUSTOM_CACHE_TTL_MS) {
+    return customBadWordsCache;
+  }
+  try {
+    const res = await supabaseRest(
+      `profanity_words?is_active=eq.true&select=word,is_regex,is_active`,
+      { method: "GET" }
+    );
+    if (res.ok) {
+      customBadWordsCache = await res.json();
+      customBadWordsLoadedAt = now;
+    }
+  } catch (e) {
+    console.warn("[ai-reply] ⚠️ 載入自訂違禁詞失敗（使用默認清單）:", e);
+  }
+  return customBadWordsCache || [];
+}
+
 /** 檢測文字是否含不當內容（憲法 VI：防止提示注入 / 不當輸出） */
-function containsProfanity(text: string): boolean {
+async function containsProfanity(text: string): Promise<boolean> {
   if (!text) return false;
   const lower = text.toLowerCase();
   for (const word of PROFANITY_WORDS) {
@@ -49,6 +74,13 @@ function containsProfanity(text: string): boolean {
   }
   for (const re of PROFANITY_REGEX) {
     if (re.test(text)) { re.lastIndex = 0; return true; }
+  }
+  // 教師自訂違禁詞（從 DB 載入，含正則支持）
+  const customWords = await loadCustomBadWords();
+  for (const w of customWords) {
+    if (!w.is_active) continue;
+    if (w.is_regex) { try { if (new RegExp(w.word, "gi").test(text)) return true; } catch { /* skip invalid regex */ } }
+    else if (lower.includes(w.word.toLowerCase())) return true;
   }
   return false;
 }
@@ -193,6 +225,7 @@ async function insertReply(r: {
   reply_text: string;
   round: number;
   parent_reply_id: string | null;
+  source: string;
 }): Promise<{ id: string } | null> {
   const res = await supabaseRest(`ai_replies`, {
     method: "POST",
@@ -204,6 +237,7 @@ async function insertReply(r: {
         reply_text: r.reply_text,
         round: r.round,
         parent_reply_id: r.parent_reply_id,
+        source: r.source,
       },
     ]),
   });
@@ -388,7 +422,7 @@ Deno.serve(async (req: Request) => {
     let flagged = false;
 
     // 不當內容檢查（憲法 VI）
-    if (containsProfanity(studentMessage)) {
+    if (await containsProfanity(studentMessage)) {
       flagged = true;
       reply = "同學，請使用文明用語。吾雖豪放，亦講禮儀。🙏";
       source = "content-filter";
@@ -397,7 +431,7 @@ Deno.serve(async (req: Request) => {
         reply = await callDeepSeek(ctx.poet.system_prompt, history, studentMessage, ctx.comment.student_name, ctx.poet.name);
         source = "deepseek";
         // 輸出過濾（憲法 VI）
-        if (containsProfanity(reply)) {
+        if (await containsProfanity(reply)) {
           reply = fallbackReply(ctx.poet.name);
           source = "fallback-filtered";
         }
@@ -419,6 +453,7 @@ Deno.serve(async (req: Request) => {
       reply_text: reply,
       round: nextRound,
       parent_reply_id: parentId,
+      source,
     });
 
     // 解除「回覆中」狀態

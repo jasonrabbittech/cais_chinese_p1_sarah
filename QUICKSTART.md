@@ -110,6 +110,8 @@ git commit -m "fix: 修复 Edge Function 回复逻辑"
 git push origin main
 ```
 
+> 💡 多诗人架构下 Edge Function 实际位于 `supabase/functions/ai-reply/index.ts`，部署指令为 `supabase functions deploy ai-reply --project-ref pzatgmavjvrastnumxty`。若调整了 AI 回覆逻辑或来源标记（见 `SUPABASE_SETUP.md` 的「教师后台：区分 AI 真实回覆与预制回覆」），请一併执行 `supabase db push` 推送数据库迁移并重新部署。
+
 ## 常见问题
 
 ### Q: GitHub Actions 部署失败怎么办？

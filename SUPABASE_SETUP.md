@@ -154,6 +154,42 @@ git commit -m "db: 添加新表"
 git push origin main
 ```
 
+## 教师后台：区分 AI 真实回覆与预制回覆
+
+教师后台「所有留言」清单与 CSV 导出会标示每笔 AI 回覆的来源，方便老师确认学生看到的是真实 AI 生成，还是预制兜底文案。
+
+### 来源标记（ai_replies.source）
+
+| 值 | 意义 | 徽章 |
+|----|------|------|
+| `deepseek` | 真实调用 DeepSeek 模型生成 | 🟢 AI 生成 |
+| `fallback` | DeepSeek 调用失败，改用预制文案 | 🟠 预制回覆 |
+| `fallback-nokey` | 未配置 DEEPSEEK_API_KEY，纯预制 | 🟠 预制回覆 |
+| `fallback-filtered` | AI 输出触发敏感词过滤，改回预制 | 🟠 预制回覆 |
+| `content-filter` | 学生留言不当被拦截 | 🔴 内容拦截 |
+| `NULL` / 空 | 本字段上线前的历史旧资料 | ⚪ 未知 |
+
+> ⚠️ 若 `DEEPSEEK_API_KEY` 未设置，所有回覆都会是 `fallback-nokey`（预制），徽章全部显示「预制回覆」。请到 Supabase → Edge Functions → `ai-reply` → Secrets 确认该 Key 已填写。
+
+### 部署（三处都要上线）
+
+```bash
+# 1. 资料库加 source 栏位（Supabase 专案）
+supabase db push --project-ref pzatgmavjvrastnumxty
+# 或到 Dashboard → SQL Editor 贴上 supabase/migrations/004_ai_reply_source.sql 执行
+
+# 2. 重新部署 Edge Function（写入 source）
+supabase functions deploy ai-reply --project-ref pzatgmavjvrastnumxty
+
+# 3. 前端静态档案照常推送到 testing / main（GitHub Pages）
+```
+
+### 验证
+
+1. 学生端留一条言 → 教师后台「所有留言」应出现对应 AI 回覆与来源徽章。
+2. 若徽章显示「未知」，表示 `source` 栏位尚未建好（步骤 1 未完成），但功能不会报错。
+3. CSV 导出档案末二栏为「来源」「回覆时间」。
+
 ## 项目结构
 
 ```
