@@ -137,5 +137,6 @@ main  ──PR/merge──►  deploy-production.yml (+ deploy-production-db.yml
 | 生产前端 Pages | ✅ 已上线（main 最新修复已部署） |
 | Testing Supabase `gjbdqcjyliuxrnmwotvc` | ⏳ 待首次 db push（空库） |
 | Staging 前端 Pages | ⏳ 待首次部署 |
-| `testing` 分支 | ⚠️ 落后 main 12 个提交 |
-| `deploy-staging.yml` | ⚠️ 漏 teacher-ops 部署 |
+| `testing` 分支 | ✅ 已同步到 main（2026-08-24） |
+| `deploy-staging.yml` | ✅ 已补 teacher-ops 部署 |
+| 迁移幂等性 | ✅ 001/002 的 Realtime ADD TABLE 已改为幂等 DO 块（兼容 demo 残留库） |

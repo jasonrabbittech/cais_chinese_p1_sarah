@@ -73,8 +73,16 @@ CREATE OR REPLACE TRIGGER update_reply_templates_updated_at BEFORE UPDATE ON pub
 -- ============================================================
 -- Realtime Publication
 -- ============================================================
--- Enable realtime for comments table (already enabled in production)
-ALTER PUBLICATION supabase_realtime ADD TABLE public.comments;
+-- Enable realtime for comments table (idempotent: 幂等，避免 demo 残留库「已是成員」報錯)
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables
+    WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'comments'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.comments;
+  END IF;
+END $$;
 
 -- ============================================================
 -- Initial Data: Default reply templates (if not exists)
