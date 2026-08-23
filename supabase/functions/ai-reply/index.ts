@@ -179,7 +179,7 @@ interface ReplyRow {
 /** 載入歷史對話（依 round 升冪） */
 async function loadHistory(commentId: string): Promise<ReplyRow[]> {
   const res = await supabaseRest(
-    `ai_replies?comment_id=eq.${commentId}&select=id,round,user_message,reply_text,parent_reply_id&order=round.asc`,
+    `ai_replies?comment_id=eq.${commentId}&select=id,comment_id,round,user_message,reply_text,parent_reply_id&order=round.asc`,
     { method: "GET" }
   );
   if (!res.ok) return [];
