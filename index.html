@@ -1148,10 +1148,11 @@ async function submitFollowUp(commentId) {
   const last = getLastReply(commentId);
   if (last && last.round >= MAX_ROUNDS) { showToast('已達最多輪數', 'error'); return; }
 
-  const btn = document.getElementById('followBtn-' + commentId);
-  if (btn) { btn.disabled = true; btn.textContent = '發送中…'; }
+  // 立即隱藏輸入行，避免「發送中」與「思考中」同時顯示
+  const row = document.getElementById('followup-' + commentId);
+  if (row) row.classList.remove('show');
 
-  // 先顯示「思考中」
+  // 顯示「思考中」
   const thread = document.getElementById('thread-' + commentId);
   const thinkingId = 'thinking-' + commentId + '-' + Date.now();
   if (thread) {
@@ -1183,17 +1184,18 @@ async function submitFollowUp(commentId) {
       appendReplyToComment(commentId, reply);
     } else {
       showToast('AI 回覆失敗，請重試', 'error');
+      // 失敗時恢復輸入行
+      if (row) row.classList.add('show');
     }
   } catch (e) {
     console.error(e);
     showToast('網絡錯誤，請檢查連接', 'error');
+    // 失敗時恢復輸入行
+    if (row) row.classList.add('show');
   } finally {
     const t = document.getElementById(thinkingId);
     if (t) t.remove();
     if (input) { input.value = ''; input.blur(); }
-    const row = document.getElementById('followup-' + commentId);
-    if (row) row.classList.remove('show');
-    if (btn) { btn.disabled = false; btn.textContent = '發送'; }
   }
 }
 
@@ -1337,6 +1339,29 @@ function switchTab(tab, btn) {
   else if (tab==='templates') loadTTemplates();
 }
 
+// ========== AI 回覆來源標記（教師後台區分 AI / 預製） ==========
+function replySourceBadge(src) {
+  const map = {
+    'deepseek':          { t: 'AI 生成',  c: '#2ecc71' },
+    'fallback':          { t: '預置回覆', c: '#e67e22' },
+    'fallback-nokey':    { t: '預置回覆', c: '#e67e22' },
+    'fallback-filtered': { t: '預置回覆', c: '#e67e22' },
+    'content-filter':    { t: '內容攔截', c: '#e74c3c' },
+  };
+  const m = map[src] || (src ? { t: src, c: '#999' } : { t: '未知', c: '#999' });
+  return `<span style="display:inline-block;font-size:10px;padding:1px 6px;border-radius:8px;background:${m.c};color:#fff;margin-left:4px;">${m.t}</span>`;
+}
+function sourceLabel(src) {
+  const map = {
+    'deepseek': 'AI生成',
+    'fallback': '預置回覆',
+    'fallback-nokey': '預置回覆',
+    'fallback-filtered': '預置回覆',
+    'content-filter': '內容攔截',
+  };
+  return map[src] || '未知';
+}
+
 async function loadTComments() {
   const c = document.getElementById('teacherContent');
   c.innerHTML = '<p style="color:#999;">載入中...</p>';
@@ -1346,10 +1371,10 @@ async function loadTComments() {
     if (err || !data||!data.length) { c.innerHTML='<p style="color:#999;">還沒有留言</p>'; return; }
     // 取得每則留言最新一輪 AI 回覆（T030：顯示詩人/作品上下文）
     const ids = data.map(d=>d.id);
-    const replyMap = {}; const replyIdMap = {};
+    const replyMap = {}; const replyIdMap = {}; const replySourceMap = {};
     if (ids.length) {
       const { data: reps } = await client.from('ai_replies').select('*').in('comment_id',ids).order('round',{ascending:true});
-      (reps||[]).forEach(r => { replyMap[r.comment_id] = r.reply_text; replyIdMap[r.comment_id] = r.id; });
+      (reps||[]).forEach(r => { replyMap[r.comment_id] = r.reply_text; replyIdMap[r.comment_id] = r.id; replySourceMap[r.comment_id] = r.source; });
     }
     window.__replyIdMap = replyIdMap;
     c.innerHTML = `
@@ -1366,7 +1391,7 @@ async function loadTComments() {
             <div><strong>${esc(d.student_name)}</strong><span style="color:#999;font-size:12px;margin-left:6px;">${fmtT(d.created_at)}</span></div>
             <div class="t-ctx">📜 ${esc(poetName)} · 《${esc(postTitle)}》</div>
             <p style="margin:4px 0;font-size:13px;">${esc(d.content)}</p>
-            ${aiText?`<p style="color:#576b95;font-size:12px;">💬 <span id="ai-reply-text-${d.id}">${esc(aiText)}</span> <button class="t-btn" style="font-size:11px;padding:2px 8px;" onclick="editAIReply('${d.id}')">編輯</button> <button class="t-btn" style="font-size:11px;padding:2px 8px;display:none;" id="ai-save-btn-${d.id}" onclick="saveAIReply('${d.id}')">保存</button> <button class="t-btn" style="font-size:11px;padding:2px 8px;display:none;" id="ai-cancel-btn-${d.id}" onclick="cancelAIReply('${d.id}')">取消</button></p>`:`<p style="color:#ccc;font-size:12px;">尚未回覆</p>`}
+            ${aiText?`<p style="color:#576b95;font-size:12px;">💬 <span id="ai-reply-text-${d.id}">${esc(aiText)}</span> ${replySourceBadge(replySourceMap[d.id])}<button class="t-btn" style="font-size:11px;padding:2px 8px;" onclick="editAIReply('${d.id}')">編輯</button> <button class="t-btn" style="font-size:11px;padding:2px 8px;display:none;" id="ai-save-btn-${d.id}" onclick="saveAIReply('${d.id}')">保存</button> <button class="t-btn" style="font-size:11px;padding:2px 8px;display:none;" id="ai-cancel-btn-${d.id}" onclick="cancelAIReply('${d.id}')">取消</button></p>`:`<p style="color:#ccc;font-size:12px;">尚未回覆</p>`}
             <button class="t-btn danger" onclick="delOne('${d.id}')">刪除</button>
           </div>`;
         }).join('')}
@@ -1396,15 +1421,15 @@ function exportCSV() {
     if(err){alert('匯出失敗');return;}
     const rows = data || [];
     const ids = rows.map(d=>d.id);
-    const replyMap = {};
+    const replyMap = {}; const sourceMap = {};
     if (ids.length) {
       const { data: reps } = await client.from('ai_replies').select('*').in('comment_id',ids).order('round',{ascending:true});
-      (reps||[]).forEach(r => { replyMap[r.comment_id] = r.reply_text; });
+      (reps||[]).forEach(r => { replyMap[r.comment_id] = r.reply_text; sourceMap[r.comment_id] = r.source; });
     }
-    const csv=[['時間','學生','詩人','作品','留言','AI回覆','回覆時間'],...rows.map(d=>{
+    const csv=[['時間','學生','詩人','作品','留言','AI回覆','來源','回覆時間'],...rows.map(d=>{
       const poetName = d.posts && d.posts.poets ? d.posts.poets.name : '';
       const postTitle = d.posts ? d.posts.title : '';
-      return [fmtT(d.created_at), d.student_name, poetName, postTitle, d.content, replyMap[d.id]||'', d.replied_at?fmtT(d.replied_at):''];
+      return [fmtT(d.created_at), d.student_name, poetName, postTitle, d.content, replyMap[d.id]||'', sourceLabel(sourceMap[d.id]), d.replied_at?fmtT(d.replied_at):''];
     })].map(r=>r.map(c=>`"${c}"`).join(',')).join('\n');
     const blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8;'});
     const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
