@@ -11,6 +11,10 @@ Thumbs.db
 .vscode/
 .idea/
 *.sublime-*
+*.code-workspace
+
+# ===== Agent IDE Data (session-local, not project source) =====
+.codebuddy/
 
 # ===== Node.js (if using local dev tools) =====
 node_modules/
