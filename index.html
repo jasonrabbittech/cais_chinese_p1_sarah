@@ -407,28 +407,6 @@
 
     .input-bar button:disabled { background: #ccc; cursor: not-allowed; }
 
-    /* ===== 教師後台入口（右下角固定） ===== */
-    .teacher-fab {
-      position: fixed;
-      bottom: 72px;
-      right: calc(50% - 250px + 10px);
-      z-index: 90;
-      background: rgba(87,107,149,0.88);
-      color: white;
-      border: none;
-      border-radius: 20px;
-      padding: 7px 14px;
-      font-size: 12px;
-      cursor: pointer;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.18);
-      backdrop-filter: blur(4px);
-      transition: background 0.2s;
-    }
-    @media (max-width: 520px) {
-      .teacher-fab { right: 10px; }
-    }
-    .teacher-fab:hover, .teacher-fab:active { background: #576b95; }
-
     /* ===== Modal ===== */
     .modal-mask {
       position: fixed;
@@ -461,38 +439,6 @@
     .modal-card button {
       width: 100%; padding: 11px; background: #07c160; color: white;
       border: none; border-radius: 10px; font-size: 16px; cursor: pointer; font-family: inherit;
-    }
-
-    /* ===== 教師後台面板 ===== */
-    .t-modal {
-      position: fixed; inset: 0; background: rgba(0,0,0,0.55);
-      display: none; align-items: center; justify-content: center; z-index: 2000;
-    }
-    .t-modal.show { display: flex; }
-
-    .t-panel {
-      background: white; border-radius: 14px; padding: 24px;
-      width: 94%; max-width: 480px; max-height: 82vh; overflow-y: auto;
-    }
-    .t-panel h2 { font-size: 18px; margin-bottom: 16px; }
-    
-    .t-tabs { display: flex; gap: 8px; margin-bottom: 16px; border-bottom: 1px solid #eee; }
-    .t-tab {
-      padding: 8px 14px; background: none; border: none;
-      font-size: 13px; color: #999; cursor: pointer;
-      border-bottom: 2px solid transparent; margin-bottom: -1px;
-    }
-    .t-tab.active { color: #576b95; border-bottom-color: #576b95; }
-
-    .t-btn {
-      padding: 6px 12px; background: #576b95; color: white;
-      border: none; border-radius: 6px; font-size: 12px; cursor: pointer;
-      margin: 4px; font-family: inherit;
-    }
-    .t-btn.danger { background: #fa5151; }
-    .t-close {
-      float: right; background: none; border: none; font-size: 22px;
-      color: #bbb; cursor: pointer;
     }
 
     .empty-hint { text-align: center; padding: 36px 16px; color: #bbb; font-size: 14px; }
@@ -613,7 +559,6 @@
     border-radius: 6px;
     margin-left: 4px;
   }
-  .t-ctx { color:#999; font-size:11px; margin-top:2px; }
   </style>
   
   <!-- Toast 通知 -->
@@ -628,21 +573,6 @@
       <p>請輸入你的姓名，讓蘇軾知道你是誰</p>
       <input type="text" id="nameInput" placeholder="例如：張小明" maxlength="20">
       <button onclick="submitName()">進入朋友圈</button>
-    </div>
-  </div>
-
-  <!-- 教師後台 -->
-  <div class="t-modal" id="teacherModal">
-    <div class="t-panel">
-      <button class="t-close" onclick="closeTeacher()">×</button>
-      <h2>🔐 教師後台</h2>
-      <div class="t-tabs">
-        <button class="t-tab active" onclick="switchTab('comments',this)">所有留言</button>
-        <button class="t-tab" onclick="switchTab('stats',this)">統計</button>
-        <button class="t-tab" onclick="switchTab('content',this)">內容管理</button>
-        <button class="t-tab" onclick="switchTab('templates',this)">回覆模板</button>
-      </div>
-      <div id="teacherContent"></div>
     </div>
   </div>
 
@@ -712,9 +642,6 @@
     </div>
   </div>
 
-  <!-- 教師後台入口（頁面右下角） -->
-  <button class="teacher-fab" onclick="openTeacher()">🎓 教師後台</button>
-
   <!-- 底部輸入欄 -->
   <div class="input-bar">
     <input type="text" id="commentInput" placeholder="Comment:" maxlength="200" onkeypress="if(event.key==='Enter') submitComment()">
@@ -732,7 +659,6 @@ const client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 let currentUserName = '';
 let isLiked = false;
 let likeCount = 128;
-const TEACHER_PASSWORD = 'cais2024';
 
 // ========== 多詩人狀態（Feature 002） ==========
 let poets = [];          // 所有詩人
@@ -837,7 +763,7 @@ function showLoginError(msg) {
     errDiv = document.createElement('div');
     errDiv.id = 'loginError';
     errDiv.style.cssText = 'color:#e74c3c;font-size:13px;margin-top:8px;text-align:center;';
-    document.getElementById('nameModal').querySelector('.modal-body').appendChild(errDiv);
+    document.getElementById('nameModal').querySelector('.modal-card').appendChild(errDiv);
   }
   errDiv.textContent = msg;
   setTimeout(() => { errDiv.textContent = ''; }, 3000);
@@ -1340,275 +1266,6 @@ async function triggerAI(comment) {
   }
 }
 
-// ========== 教師後台 ==========
-function openTeacher() {
-  const pw = prompt('請輸入教師密碼：');
-  if (pw !== TEACHER_PASSWORD) { if(pw!==null) alert('密碼錯誤'); return; }
-  document.getElementById('teacherModal').classList.add('show');
-  loadTComments();
-}
-function closeTeacher() { document.getElementById('teacherModal').classList.remove('show'); }
-
-function switchTab(tab, btn) {
-  document.querySelectorAll('.t-tab').forEach(t=>t.classList.remove('active'));
-  btn.classList.add('active');
-  if (tab==='comments') loadTComments();
-  else if (tab==='stats') loadTStats();
-  else if (tab==='content') loadTContent();
-  else if (tab==='templates') loadTTemplates();
-}
-
-// ========== AI 回覆來源標記（教師後台區分 AI / 預製） ==========
-function replySourceBadge(src) {
-  const map = {
-    'deepseek':          { t: 'AI 生成',  c: '#2ecc71' },
-    'fallback':          { t: '預置回覆', c: '#e67e22' },
-    'fallback-nokey':    { t: '預置回覆', c: '#e67e22' },
-    'fallback-filtered': { t: '預置回覆', c: '#e67e22' },
-    'content-filter':    { t: '內容攔截', c: '#e74c3c' },
-  };
-  const m = map[src] || (src ? { t: src, c: '#999' } : { t: '未知', c: '#999' });
-  return `<span style="display:inline-block;font-size:10px;padding:1px 6px;border-radius:8px;background:${m.c};color:#fff;margin-left:4px;">${m.t}</span>`;
-}
-function sourceLabel(src) {
-  const map = {
-    'deepseek': 'AI生成',
-    'fallback': '預置回覆',
-    'fallback-nokey': '預置回覆',
-    'fallback-filtered': '預置回覆',
-    'content-filter': '內容攔截',
-  };
-  return map[src] || '未知';
-}
-
-async function loadTComments() {
-  const c = document.getElementById('teacherContent');
-  c.innerHTML = '<p style="color:#999;">載入中...</p>';
-  try {
-    const { data, err } = await client.from('comments')
-      .select('*, posts(title, poets(name))').order('created_at',{ascending:false});
-    if (err || !data||!data.length) { c.innerHTML='<p style="color:#999;">還沒有留言</p>'; return; }
-    // 取得每則留言的完整對話線程（多輪）
-    const ids = data.map(d=>d.id);
-    const repliesByComment = {}; // { commentId: [replyRows...] }
-    const latestReplyMap = {}; const replyIdMap = {}; const replySourceMap = {};
-    if (ids.length) {
-      const { data: reps } = await client.from('ai_replies').select('*').in('comment_id',ids).order('round',{ascending:true});
-      (reps||[]).forEach(r => {
-        if (!repliesByComment[r.comment_id]) repliesByComment[r.comment_id] = [];
-        repliesByComment[r.comment_id].push(r);
-        latestReplyMap[r.comment_id] = r.reply_text;
-        replyIdMap[r.comment_id] = r.id;
-        replySourceMap[r.comment_id] = r.source;
-      });
-    }
-    window.__replyIdMap = replyIdMap;
-    // 渲染單條留言的完整對話線程
-    const renderThread = (d, replies) => {
-      let html = `<div style="padding:10px;border-bottom:1px solid #f0f0f0;">
-        <div><strong>${esc(d.student_name)}</strong><span style="color:#999;font-size:12px;margin-left:6px;">${fmtT(d.created_at)}</span></div>
-        <div class="t-ctx">📜 ${esc(d.posts?.poets?.name || '—')} · 《${esc(d.posts?.title || '—')}》</div>
-        <p style="margin:4px 0;font-size:13px;">${esc(d.content)}</p>`;
-      if (!replies || !replies.length) {
-        html += `<p style="color:#ccc;font-size:12px;">尚未回覆</p>`;
-      } else {
-        html += `<div style="margin-left:8px;border-left:2px solid #e8e8e8;padding-left:10px;margin-top:6px;">`;
-        replies.forEach((r, i) => {
-          // 第1輪：原始留言→AI回覆（不顯示 user_message，因為就是 d.content）
-          // 第N輪(N>1)：顯示學生追問 + AI回覆
-          if (i > 0 && r.user_message) {
-            html += `<div style="margin:6px 0;padding:6px;background:#fff8e1;border-radius:6px;font-size:12px;">
-              <span style="color:#e67e22;font-weight:500;">🙋 追問（第${r.round}輪）</span>
-              <p style="margin:2px 0;color:#555;">${esc(r.user_message)}</p>
-            </div>`;
-          }
-          html += `<div style="margin:6px 0;font-size:12px;">
-            <span style="color:#576b95;">💬 ${esc(r.reply_text)}</span>
-            ${replySourceBadge(r.source)}
-            ${i === replies.length - 1 ? `<button class="t-btn" style="font-size:11px;padding:2px 8px;" onclick="editAIReply('${d.id}')">編輯</button>
-            <button class="t-btn" style="font-size:11px;padding:2px 8px;display:none;" id="ai-save-btn-${d.id}" onclick="saveAIReply('${d.id}')">保存</button>
-            <button class="t-btn" style="font-size:11px;padding:2px 8px;display:none;" id="ai-cancel-btn-${d.id}" onclick="cancelAIReply('${d.id}')">取消</button>` : ''}
-            <span style="color:#bbb;font-size:10px;margin-left:4px;">第${r.round}輪</span>
-          </div>`;
-        });
-        html += `</div>`; // close thread
-      }
-      html += `<button class="t-btn danger" onclick="delOne('${d.id}')">刪除</button></div>`;
-      return html;
-    };
-    c.innerHTML = `
-      <div style="margin-bottom:12px;">
-        <button class="t-btn" onclick="exportCSV()">📥 匯出 CSV</button>
-        <button class="t-btn danger" onclick="deleteAll()">🗑️ 刪除全部</button>
-      </div>
-      <div style="max-height:50vh;overflow-y:auto;">
-        ${data.map(d => renderThread(d, repliesByComment[d.id])).join('')}
-      </div>`;
-  } catch(e) { c.innerHTML='<p>載入錯誤</p>'; }
-}
-
-async function loadTStats() {
-  const c = document.getElementById('teacherContent');
-  c.innerHTML='<p style="color:#999;">載入中...</p>';
-  try {
-    const { data, err } = await client.from('comments').select('student_name');
-    if(err){c.innerHTML='<p>載入失敗</p>';return;}
-    const s={};data&&data.forEach(x=>{s[x.student_name]=(s[x.student_name]||0)+1;});
-    const sorted=Object.entries(s).sort((a,b)=>b[1]-a[1]);
-    c.innerHTML=`<h3 style="margin-bottom:8px;">留言統計</h3><p style="color:#999;font-size:12px;">總計：${data?data.length:0}則</p>${
-      sorted.map(([n,c],i)=>`<div style="display:flex;justify-content:space-between;padding:10px;border-bottom:1px solid #f0f0f0;"><span>${i+1}. ${esc(n)}</span><strong>${c} 則</strong></div>`).join('')
-    }`;
-  } catch(e) { c.innerHTML='<p>載入錯誤</p>'; }
-}
-
-// ========== 內容管理（詩人/作品發布控制 + 違禁詞管理） ==========
-async function loadTContent() {
-  const c = document.getElementById('teacherContent');
-  c.innerHTML = '<p style="color:#999;">載入中...</p>';
-  try {
-    // 載入詩人列表
-    const { data: poets, err: pErr } = await client.from('poets').select('*').order('name');
-    if (pErr) throw pErr;
-    // 載入作品列表
-    const { data: posts, err: poErr } = await client.from('posts').select('*, poets(name)').order('created_at');
-    if (poErr) throw poErr;
-    // 載入違禁詞
-    const { data: badWords, err: bErr } = await client.from('profanity_words').select('*').order('word');
-    if (bErr && bErr.code !== '42P01') throw bErr; // 表不存在時忽略（遷移尚未執行）
-
-    c.innerHTML = `
-      <h3 style="margin-bottom:8px;">📚 詩人管理</h3>
-      <div style="max-height:20vh;overflow-y:auto;margin-bottom:16px;">
-        ${(poets||[]).map(p => `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 8px;border-bottom:1px solid #f0f0f0;">
-          <div><span style="font-size:16px;margin-right:4px;">${esc(p.avatar_emoji)}</span><strong>${esc(p.name)}</strong> <span style="color:#999;font-size:11px;">${esc(p.dynasty)}</span></div>
-          <button class="t-btn" style="${p.is_published ? 'background:#2ecc71;' : 'background:#ccc;'}font-size:11px;padding:3px 10px;" onclick="togglePub('poets','${p.id}',${p.is_published})">${p.is_published ? '✅' : '⛔'}</button>
-        </div>`).join('') || '<p style="color:#999;">無數據</p>'}
-      </div>
-      <h3 style="margin-bottom:8px;">📜 作品管理</h3>
-      <div style="max-height:18vh;overflow-y:auto;margin-bottom:16px;">
-        ${(posts||[]).map(post => `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 8px;border-bottom:1px solid #f0f0f0;">
-          <div><strong>${esc(post.title)}</strong> <span style="color:#999;font-size:11px;">— ${esc(post.poets?.name || '—')}</span></div>
-          <button class="t-btn" style="${post.is_published ? 'background:#2ecc71;' : 'background:#ccc;'}font-size:11px;padding:3px 10px;" onclick="togglePub('posts','${post.id}',${post.is_published})">${post.is_published ? '✅' : '⛔'}</button>
-        </div>`).join('') || '<p style="color:#999;">無數據</p>'}
-      </div>
-      <h3 style="margin-bottom:8px;">🚫 違禁詞管理 <span style="font-weight:normal;color:#999;font-size:12px;">（學生留言過濾）</span></h3>
-      <div style="background:#fef9e7;padding:8px;border-radius:6px;margin-bottom:8px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
-        <input type="text" id="newBadWord" placeholder="新增違禁詞..." style="flex:1;min-width:120px;padding:4px 8px;font-size:12px;border:1px solid #ddd;border-radius:4px;">
-        <label style="font-size:11px;display:flex;align-items:center;gap:3px;"><input type="checkbox" id="newWordIsRegex"> 正則</label>
-        <button class="t-btn" style="font-size:11px;padding:4px 12px;" onclick="addWord()">＋ 新增</button>
-      </div>
-      <div style="max-height:20vh;overflow-y:auto;">
-        ${(badWords||[]).map(w => `<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 8px;border-bottom:1px solid #f0f0f0;font-size:12px;">
-          <div><code style="background:#f5f5f5;padding:1px 4px;border-radius:3px;">${esc(w.word)}</code>
-          ${w.is_regex ? '<span style="color:#e67e22;font-size:10px;margin-left:4px;">正則</span>' : ''}
-          </div>
-          <div style="display:flex;gap:4px;">
-            <button class="t-btn" style="${w.is_active ? 'background:#2ecc71;' : 'background:#ccc;'}font-size:10px;padding:2px 8px;" onclick="toggleWord('${w.id}',${w.is_active})">${w.is_active ? '啟用' : '停用'}</button>
-            <button class="t-btn danger" style="font-size:10px;padding:2px 8px;" onclick="deleteWord('${w.id}')">刪</button>
-          </div>
-        </div>`).join('') || '<p style="color:#999;">無違禁詞（表可能尚未建立）</p>'}
-      </div>
-      <p style="color:#aaa;font-size:11px;margin-top:8px;">💡 隱藏詩人/作品後學生端不可見。違禁詞會同時在前端和後端生效。</p>`;
-  } catch(e) { c.innerHTML='<p>載入錯誤: ' + esc(e.message) + '</p>'; }
-}
-
-// ========== 內容管理全局操作函數（通過 teacher-ops Edge Function 寫入） ==========
-async function togglePub(table, id, current) {
-  const { error } = await client.functions.invoke('teacher-ops', {
-    body: { action: 'toggle_publish', table, id },
-  });
-  if (error) { alert('操作失敗: ' + (error.message || '')); return; }
-  loadTContent();
-}
-async function toggleWord(id, current) {
-  const { error } = await client.functions.invoke('teacher-ops', {
-    body: { action: 'toggle_word', id },
-  });
-  if (error) { alert('操作失敗: ' + (error.message || '')); return; }
-  loadTContent();
-}
-async function deleteWord(id) {
-  if (!confirm('確定刪除此違禁詞？')) return;
-  const { error } = await client.functions.invoke('teacher-ops', {
-    body: { action: 'delete_word', id },
-  });
-  if (error) { alert('操作失敗: ' + (error.message || '')); return; }
-  loadTContent();
-}
-async function addWord() {
-  const input = document.getElementById('newBadWord');
-  const word = (input?.value || '').trim();
-  if (!word) { alert('請輸入詞語'); return; }
-  const isRegex = document.getElementById('newWordIsRegex')?.checked || false;
-  const { error } = await client.functions.invoke('teacher-ops', {
-    body: { action: 'add_word', word, is_regex },
-  });
-  if (error) { alert('新增失敗: ' + (error.message || '可能已存在')); return; }
-  loadTContent();
-}
-
-async function delOne(id) { if(!confirm('確定刪除？'))return; await client.from('comments').delete().eq('id',id); loadTComments(); }
-async function deleteAll() { if(!confirm('確定刪除全部？不可復原！'))return; await client.from('comments').delete().neq('id','00000000-0000-0000-0000-000000000000'); loadTComments(); }
-
-function exportCSV() {
-  client.from('comments').select('*, posts(title, poets(name))').order('created_at',{ascending:true}).then(async ({data,err})=>{
-    if(err){alert('匯出失敗');return;}
-    const rows = data || [];
-    const ids = rows.map(d=>d.id);
-    const replyMap = {}; const sourceMap = {};
-    if (ids.length) {
-      const { data: reps } = await client.from('ai_replies').select('*').in('comment_id',ids).order('round',{ascending:true});
-      (reps||[]).forEach(r => { replyMap[r.comment_id] = r.reply_text; sourceMap[r.comment_id] = r.source; });
-    }
-    const csv=[['時間','學生','詩人','作品','留言','AI回覆','來源','回覆時間'],...rows.map(d=>{
-      const poetName = d.posts && d.posts.poets ? d.posts.poets.name : '';
-      const postTitle = d.posts ? d.posts.title : '';
-      return [fmtT(d.created_at), d.student_name, poetName, postTitle, d.content, replyMap[d.id]||'', sourceLabel(sourceMap[d.id]), d.replied_at?fmtT(d.replied_at):''];
-    })].map(r=>r.map(c=>`"${c}"`).join(',')).join('\n');
-    const blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8;'});
-    const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
-    a.download=`多詩人朋友圈_${new Date().toISOString().slice(0,10)}.csv`; a.click(); URL.revokeObjectURL(a.href);
-  });
-}
-
-// ========== 編輯 AI 回覆 ==========
-let originalAIReply = {};
-
-function editAIReply(id) {
-  const rid = (window.__replyIdMap && window.__replyIdMap[id]) || null;
-  if (!rid) { alert('尚無 AI 回覆可編輯'); return; }
-  const textSpan = document.getElementById('ai-reply-text-' + id);
-  if (!textSpan) return;
-  originalAIReply[id] = textSpan.textContent;
-  textSpan.outerHTML = '<textarea id="ai-reply-edit-' + id + '" style="width:90%;min-height:40px;font-size:12px;color:#576b95;background:#f0f4ff;padding:4px;border-radius:4px;border:1px solid #576b95;">' + esc(originalAIReply[id]) + '</textarea>';
-  document.getElementById('ai-save-btn-' + id).style.display = 'inline-block';
-  document.getElementById('ai-cancel-btn-' + id).style.display = 'inline-block';
-  event.target.style.display = 'none';
-}
-
-async function saveAIReply(id) {
-  const rid = (window.__replyIdMap && window.__replyIdMap[id]) || null;
-  if (!rid) return;
-  const textarea = document.getElementById('ai-reply-edit-' + id);
-  if (!textarea) return;
-  const newReply = textarea.value.trim();
-  if (!newReply) { alert('回覆內容不能為空'); return; }
-  try {
-    const { error } = await client.from('ai_replies').update({ reply_text: newReply }).eq('id', rid);
-    if (error) { alert('保存失敗: ' + error.message); return; }
-    const container = textarea.parentNode;
-    container.innerHTML = '💬 <span id="ai-reply-text-' + id + '">' + esc(newReply) + '</span> <button class="t-btn" style="font-size:11px;padding:2px 8px;" onclick="editAIReply(\'' + id + '\')">編輯</button> <button class="t-btn" style="font-size:11px;padding:2px 8px;display:none;" id="ai-save-btn-' + id + '" onclick="saveAIReply(\'' + id + '\')">保存</button> <button class="t-btn" style="font-size:11px;padding:2px 8px;display:none;" id="ai-cancel-btn-' + id + '" onclick="cancelAIReply(\'' + id + '\')">取消</button>';
-  } catch(e) { alert('保存失敗'); }
-}
-
-function cancelAIReply(id) {
-  const textSpan = document.getElementById('ai-reply-text-' + id);
-  const textarea = document.getElementById('ai-reply-edit-' + id);
-  const container = textSpan ? textSpan.parentNode : (textarea ? textarea.parentNode : null);
-  if (!container) return;
-  container.innerHTML = '💬 <span id="ai-reply-text-' + id + '">' + esc(originalAIReply[id] || '') + '</span> <button class="t-btn" style="font-size:11px;padding:2px 8px;" onclick="editAIReply(\'' + id + '\')">編輯</button> <button class="t-btn" style="font-size:11px;padding:2px 8px;display:none;" id="ai-save-btn-' + id + '" onclick="saveAIReply(\'' + id + '\')">保存</button> <button class="t-btn" style="font-size:11px;padding:2px 8px;display:none;" id="ai-cancel-btn-' + id + '" onclick="cancelAIReply(\'' + id + '\')">取消</button>';
-}
-
 // ========== Toast 通知 ==========
 function showToast(msg, type='info') {
   const toast = document.getElementById('toast');
@@ -1638,71 +1295,6 @@ function fmtT(iso){
   const h=String(d.getHours()).padStart(2,'0');
   const m=String(d.getMinutes()).padStart(2,'0');
   return y+'-'+M+'-'+D+' '+h+':'+m;
-}
-
-// ========== 回覆模板管理 ==========
-let allTemplates = [];
-
-async function loadTTemplates() {
-  const c = document.getElementById('teacherContent');
-  c.innerHTML = '<p style="color:#999;">載入中...</p>';
-  try {
-    const { data, error } = await client.from('reply_templates').select('*').order('type').order('created_at');
-    if (error) { c.innerHTML = '<p>讀取失敗</p>'; return; }
-    allTemplates = data || [];
-    const generic = allTemplates.filter(t => t.type === 'generic');
-    const smart = allTemplates.filter(t => t.type === 'smart');
-    c.innerHTML = '<div style="margin-bottom:12px;"><button class="t-btn" onclick="showAddTemplate()">➕ 新增模板</button></div><h3 style="margin:12px 0 8px;font-size:14px;">📋 固定回覆模板（API 不可用時隨機選用）</h3><div id="genericList">' + generic.map(t => '<div id="tpl-' + t.id + '" style="padding:8px 10px;border-bottom:1px solid #f0f0f0;font-size:13px;"><div style="display:flex;justify-content:space-between;align-items:flex-start;"><div style="flex:1;white-space:pre-wrap;">' + esc(t.reply) + '</div><div style="flex-shrink:0;margin-left:8px;"><button class="t-btn" style="font-size:11px;padding:2px 8px;" onclick="editTemplate(\'' + t.id + '\')">編輯</button> <button class="t-btn danger" style="font-size:11px;padding:2px 8px;" onclick="deleteTemplate(\'' + t.id + '\')">刪除</button></div></div></div>').join('') + '</div><h3 style="margin:18px 0 8px;font-size:14px;">🧠 智能關鍵詞模板</h3><div id="smartList">' + smart.map(t => '<div id="tpl-' + t.id + '" style="padding:8px 10px;border-bottom:1px solid #f0f0f0;font-size:13px;"><div style="display:flex;justify-content:space-between;align-items:flex-start;"><div style="flex:1;white-space:pre-wrap;">' + esc(t.reply) + '<br><span style="color:#999;font-size:11px;">關鍵詞：' + esc(t.keyword || '') + '</span></div><div style="flex-shrink:0;margin-left:8px;"><button class="t-btn" style="font-size:11px;padding:2px 8px;" onclick="editTemplate(\'' + t.id + '\')">編輯</button> <button class="t-btn danger" style="font-size:11px;padding:2px 8px;" onclick="deleteTemplate(\'' + t.id + '\')">刪除</button></div></div></div>').join('') + '</div>';
-  } catch(e) { c.innerHTML = '<p>讀取失敗</p>'; }
-}
-
-function showAddTemplate() {
-  const c = document.getElementById('teacherContent');
-  const insertHTML = '<div id="addTplForm" style="background:#f9f9f9;padding:12px;border-radius:8px;margin-bottom:12px;"><h4 style="margin:0 0 8px;">新增模板</h4><div style="margin-bottom:6px;"><label style="font-size:12px;">類型：</label><select id="tplType" onchange="toggleKeyword()"><option value="generic">固定回覆</option><option value="smart">智能關鍵詞</option></select></div><div id="keywordField" style="margin-bottom:6px;display:none;"><label style="font-size:12px;">觸發關鍵詞（逗號分隔）：</label><input type="text" id="tplKeyword" style="width:90%;padding:4px;font-size:12px;" placeholder="例如：心情,感覺,最近"></div><div style="margin-bottom:6px;"><label style="font-size:12px;">回覆內容：</label><textarea id="tplReply" style="width:90%;min-height:50px;padding:4px;font-size:12px;"></textarea></div><button class="t-btn" onclick="submitAddTemplate()">保存</button> <button class="t-btn" onclick="document.getElementById(\'addTplForm\').remove()">取消</button></div>';
-  c.insertAdjacentHTML('afterbegin', insertHTML);
-}
-
-function toggleKeyword() {
-  const type = document.getElementById('tplType').value;
-  document.getElementById('keywordField').style.display = type === 'smart' ? 'block' : 'none';
-}
-
-async function submitAddTemplate() {
-  const type = document.getElementById('tplType').value;
-  const reply = document.getElementById('tplReply').value.trim();
-  const keyword = type === 'smart' ? document.getElementById('tplKeyword').value.trim() : null;
-  if (!reply) { alert('請填寫回覆內容'); return; }
-  try {
-    const { error } = await client.from('reply_templates').insert([{ type: type, keyword: keyword, reply: reply }]);
-    if (error) { alert('新增失敗：' + error.message); return; }
-    loadTTemplates();
-  } catch(e) { alert('新增失敗'); }
-}
-
-async function editTemplate(id) {
-  const tpl = allTemplates.find(t => t.id === id);
-  if (!tpl) return;
-  const newReply = prompt('修改回覆內容：', tpl.reply);
-  if (newReply === null) return;
-  let newKeyword = tpl.keyword;
-  if (tpl.type === 'smart') {
-    newKeyword = prompt('修改觸發關鍵詞（逗號分隔）：', tpl.keyword || '');
-    if (newKeyword === null) return;
-  }
-  try {
-    const { error } = await client.from('reply_templates').update({ reply: newReply, keyword: newKeyword, updated_at: new Date().toISOString() }).eq('id', id);
-    if (error) { alert('修改失敗'); return; }
-    loadTTemplates();
-  } catch(e) { alert('修改失敗'); }
-}
-
-async function deleteTemplate(id) {
-  if (!confirm('確定刪除這條模板？')) return;
-  try {
-    const { error } = await client.from('reply_templates').delete().eq('id', id);
-    if (error) { alert('刪除失敗'); return; }
-    loadTTemplates();
-  } catch(e) { alert('刪除失敗'); }
 }
 
 function focusInput(){document.getElementById('commentInput').focus(); closePopup();}
