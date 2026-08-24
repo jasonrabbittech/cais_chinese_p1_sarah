@@ -60,8 +60,8 @@ T047 + T048 + T049 ─> T050 (CI) ─> T052 (staging 全量验证) ─> T053 (PR
 
 ## Phase 7: Polish & 验收
 
-- [ ] T052 按 quickstart.md 场景 0–8 全量验证（staging）：登录墙/未授权 401/写操作落库/teacher-edited 标记/后台实时更新/限流/双环境隔离
-- [ ] T053 PR `feat/003-...` → `testing`（staging 验证）→ PR → `main`（生产审批部署，生产复跑场景 1–6）；关闭 O-1/O-2：更新 `specs/002-multi-poet/spec.md` Open Issues 状态与 `CODEBUDDY.md` Active Context
+- [x] T052 按 quickstart.md 场景 0–8 全量验证（staging）：登录墙/未授权 401/写操作落库/teacher-edited 标记/后台实时更新/限流/双环境隔离
+- [x] T053 PR `feat/003-...` → `testing`（staging 验证）→ PR → `main`（生产审批部署，生产复跑场景 1–6）；关闭 O-1/O-2：更新 `specs/002-multi-poet/spec.md` Open Issues 状态与 `CODEBUDDY.md` Active Context
 
 ---
 
