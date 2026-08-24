@@ -103,6 +103,54 @@
       background:#2ecc71; margin-right:4px; animation: pulse 2s infinite;
     }
     @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
+
+    /* ===== 004: 表單 modal / 圖片上傳 / 龍虎榜 ===== */
+    .fm-mask {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.55);
+      display: flex; align-items: center; justify-content: center; z-index: 3000;
+    }
+    .fm-card {
+      background: #fff; border-radius: 14px; padding: 22px;
+      width: 92%; max-width: 420px; max-height: 86vh; overflow-y: auto;
+    }
+    .fm-card h3 { font-size: 16px; margin-bottom: 14px; }
+    .fm-card label { display: block; font-size: 12px; color: #555; margin: 9px 0 3px; }
+    .fm-card input[type=text], .fm-card select, .fm-card textarea {
+      width: 100%; padding: 8px 10px; border: 1px solid #ddd; border-radius: 8px;
+      font-size: 13px; outline: none; font-family: inherit;
+    }
+    .fm-card textarea { min-height: 60px; resize: vertical; }
+    .fm-row { display: flex; gap: 8px; }
+    .fm-row > div { flex: 1; }
+    .fm-advanced { margin-top: 10px; }
+    .fm-advanced summary { font-size: 12px; color: #576b95; cursor: pointer; user-select: none; }
+    .fm-actions { display: flex; gap: 8px; margin-top: 16px; }
+    .fm-actions .t-btn { flex: 1; padding: 9px; font-size: 14px; }
+    .upload-box {
+      display: flex; align-items: center; gap: 8px; margin-top: 3px;
+    }
+    .upload-box img { width: 42px; height: 42px; border-radius: 8px; object-fit: cover; border: 1px solid #e0e0e0; }
+    .upload-hint { font-size: 11px; color: #aaa; }
+    .podium-card {
+      background: linear-gradient(135deg,#fef9e7,#fdf2d0);
+      border: 1px solid #f0e0a0; border-radius: 10px; padding: 12px; margin-bottom: 10px;
+    }
+    .podium-row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 5px 0; font-size: 14px;
+    }
+    .podium-row .medal { margin-right: 6px; }
+    .q-card {
+      background: #f4f7ff; border-left: 3px solid #576b95;
+      border-radius: 6px; padding: 9px 11px; margin-bottom: 8px; font-size: 13px;
+    }
+    .summary-box {
+      background: #f9f9f9; border-radius: 10px; padding: 14px;
+      font-size: 13px; line-height: 1.7; white-space: pre-wrap;
+    }
+    .summary-meta { font-size: 11px; color: #aaa; margin-bottom: 8px; }
+    .loading-dots::after { content: ''; animation: dots 1.2s infinite steps(4); }
+    @keyframes dots { 0%{content:'';} 25%{content:'.';} 50%{content:'..';} 75%{content:'...';} }
   </style>
 </head>
 <body>
@@ -407,35 +455,165 @@ async function loadTStats() {
   const c = document.getElementById('teacherContent');
   c.innerHTML = '<p class="loading">載入中...</p>';
   try {
-    const { data, error } = await client.from('comments').select('student_name, post_id, posts(title, poets(name))');
+    const { data, error } = await client.from('comments')
+      .select('student_name, created_at, post_id, posts(title, poets(name))');
     if (error) throw error;
-    if (!data || !data.length) { c.innerHTML = '<p class="empty">還沒有留言數據</p>'; return; }
-    // 按學生統計
+    if (!data || !data.length) {
+      c.innerHTML = '<p class="empty">還沒有留言數據，統計與總結將在有互動後可用</p>';
+      renderSummaryBox(); // 保留總結區（空態）
+      return;
+    }
+    // 追問數（活躍度 = 留言 + 追問，research D4）
+    const ids = data.map(d => d.id);
+    const { data: reps, error: rErr } = await client.from('ai_replies')
+      .select('comment_id, round').in('comment_id', ids);
+    if (rErr) throw rErr;
+    const followupByComment = {};
+    (reps || []).forEach(r => {
+      if (r.round > 1) followupByComment[r.comment_id] = (followupByComment[r.comment_id] || 0) + 1;
+    });
+
+    // 按學生活躍度聚合（並列按首次留言時間先後）
     const byStudent = {};
-    data.forEach(x => { byStudent[x.student_name] = (byStudent[x.student_name] || 0) + 1; });
-    const sorted = Object.entries(byStudent).sort((a, b) => b[1] - a[1]);
-    // 按詩人統計
+    data.forEach(x => {
+      const s = byStudent[x.student_name] = byStudent[x.student_name] ||
+        { comments: 0, followups: 0, firstAt: x.created_at };
+      s.comments++;
+      s.followups += followupByComment[x.id] || 0;
+      if (x.created_at < s.firstAt) s.firstAt = x.created_at;
+    });
+    const activity = Object.entries(byStudent).map(([name, v]) =>
+      ({ name, total: v.comments + v.followups, ...v }));
+    const sorted = [...activity].sort((a, b) =>
+      b.total - a.total || a.firstAt.localeCompare(b.firstAt));
+    const top3 = sorted.slice(0, 3);
+    const medals = ['🥇', '🥈', '🥉'];
+
+    // 按詩人分佈
     const byPoet = {};
     data.forEach(x => {
       const p = x.posts?.poets?.name || '未綁定';
-      byPoet[p] = (byPoet[p] || 0) + 1;
+      byPoet[p] = byPoet[p] || { comments: 0, followups: 0 };
+      byPoet[p].comments++;
+      byPoet[p].followups += followupByComment[x.id] || 0;
     });
-    const poetRows = Object.entries(byPoet).sort((a, b) => b[1] - a[1]);
+    const poetRows = Object.entries(byPoet).sort((a, b) =>
+      (b[1].comments + b[1].followups) - (a[1].comments + a[1].followups));
+
     c.innerHTML = `
       <h3 class="sec-title">留言統計</h3>
-      <p style="color:#999;font-size:12px;">總計：${data.length} 則 · 參與學生：${sorted.length} 人</p>
-      <h3 class="sec-title" style="margin-top:16px;">🏅 學生排行</h3>
-      <div class="scroll-list">
-        ${sorted.map(([n, cnt], i) => `<div class="row-item" style="display:flex;justify-content:space-between;">
-          <span>${i + 1}. ${esc(n)}</span><strong>${cnt} 則</strong></div>`).join('')}
+      <p style="color:#999;font-size:12px;">留言 ${data.length} · 追問 ${Object.values(followupByComment).reduce((a, b) => a + b, 0)} · 參與學生 ${sorted.length} 人</p>
+
+      <h3 class="sec-title" style="margin-top:14px;">🏅 學生龍虎榜（Top 3 活躍）</h3>
+      <div class="podium-card">
+        ${top3.map((s, i) => `<div class="podium-row">
+          <span><span class="medal">${medals[i]}</span>${esc(s.name)}</span>
+          <strong>${s.total} 分</strong>
+        </div>`).join('') || '<p class="empty" style="padding:8px;">暫無</p>'}
+        <p style="font-size:10px;color:#aaa;margin-top:4px;">活躍度 = 留言數 + 追問數</p>
       </div>
-      <h3 class="sec-title" style="margin-top:16px;">📜 詩人互動分佈</h3>
+
+      <h3 class="sec-title" style="margin-top:14px;">🏆 Top 3 優質問題（AI 評估）</h3>
+      <div id="topQuestionsBox"><p class="loading" style="padding:10px;font-size:12px;">評估中<span class="loading-dots"></span></p></div>
+      <button class="t-btn" style="font-size:11px;padding:3px 10px;" onclick="loadTopQuestions()">🔄 重新評估</button>
+
+      <h3 class="sec-title" style="margin-top:18px;">🤖 班級互動總結</h3>
+      <div id="summaryBox"></div>
+
+      <h3 class="sec-title" style="margin-top:18px;">📜 詩人互動分佈</h3>
       <div>
-        ${poetRows.map(([p, cnt]) => `<div class="row-item" style="display:flex;justify-content:space-between;">
-          <span>${esc(p)}</span><strong>${cnt} 則</strong></div>`).join('')}
+        ${poetRows.map(([p, v]) => `<div class="row-item" style="display:flex;justify-content:space-between;">
+          <span>${esc(p)}</span><strong>${v.comments + v.followups} 條互動</strong></div>`).join('')}
+      </div>
+
+      <h3 class="sec-title" style="margin-top:16px;">📋 全部學生排行</h3>
+      <div class="scroll-list" style="max-height:26vh;">
+        ${sorted.map((s, i) => `<div class="row-item" style="display:flex;justify-content:space-between;">
+          <span>${i + 1}. ${esc(s.name)}</span>
+          <span style="color:#999;font-size:11px;">留言 ${s.comments} · 追問 ${s.followups}</span></div>`).join('')}
       </div>`;
+
+    renderSummaryBox();
+    loadTopQuestions();
   } catch (e) {
     c.innerHTML = '<p class="empty">載入錯誤：' + esc(e.message || '') + '</p>';
+  }
+}
+
+/** 總結區渲染（D11：localStorage 緩存 + 重新生成） */
+function renderSummaryBox() {
+  const box = document.getElementById('summaryBox');
+  if (!box) return;
+  const cached = JSON.parse(localStorage.getItem('admin_summary_cache') || 'null');
+  if (cached && cached.summary) {
+    box.innerHTML = `
+      <div class="summary-meta">生成於 ${fmtT(cached.at)} · 參與 ${cached.stats?.students ?? '—'} 人 / ${cached.stats?.comments ?? '—'} 留言 / ${cached.stats?.followups ?? '—'} 追問</div>
+      <div class="summary-box">${esc(cached.summary)}</div>
+      <div style="margin-top:8px;display:flex;gap:6px;">
+        <button class="t-btn" onclick="copySummary()">📋 複製</button>
+        <button class="t-btn" onclick="generateSummary()">🔄 重新生成</button>
+      </div>`;
+  } else {
+    box.innerHTML = `
+      <p style="color:#999;font-size:12px;margin-bottom:8px;">AI 生成班級互動敘述總結（活躍學生、討論主題、亮點）</p>
+      <button class="t-btn" onclick="generateSummary()">🤖 一鍵生成總結</button>`;
+  }
+}
+
+/** 調 ai-summary 生成總結（成功後寫緩存並重繪） */
+async function generateSummary() {
+  const box = document.getElementById('summaryBox');
+  if (!box) return;
+  box.innerHTML = '<p class="loading" style="padding:14px;font-size:13px;">🤖 AI 總結生成中（10–30 秒），請稍候<span class="loading-dots"></span></p>';
+  const res = await invokeAI('ai-summary', { action: 'class_summary' });
+  if (res && res.success) {
+    localStorage.setItem('admin_summary_cache', JSON.stringify({
+      summary: res.summary, stats: res.stats, at: new Date().toISOString(),
+    }));
+    renderSummaryBox();
+    showToast('總結已生成', 'success');
+  } else {
+    renderSummaryBox(); // 恢復舊緩存展示
+  }
+}
+
+/** 調 ai-summary 評估 Top 問題 */
+async function loadTopQuestions() {
+  const box = document.getElementById('topQuestionsBox');
+  if (!box) return;
+  box.innerHTML = '<p class="loading" style="padding:10px;font-size:12px;">評估中<span class="loading-dots"></span></p>';
+  const res = await invokeAI('ai-summary', { action: 'top_questions' });
+  if (!res || !res.success) { box.innerHTML = '<p class="empty" style="padding:8px;">評估失敗，請稍後重試</p>'; return; }
+  const qs = res.questions || [];
+  if (!qs.length) {
+    box.innerHTML = `<p class="empty" style="padding:8px;">${esc(res.warning || '暫無可評估的問題')}</p>`;
+    return;
+  }
+  box.innerHTML = qs.map((q, i) => `<div class="q-card">
+    <div><strong>Q${i + 1}</strong> ${esc(q.text)}</div>
+    <div style="color:#999;font-size:11px;margin-top:4px;">🙋 ${esc(q.student)} → ${esc(q.poet)} · 💡 ${esc(q.reason)}</div>
+  </div>`).join('');
+}
+
+function copySummary() {
+  const cached = JSON.parse(localStorage.getItem('admin_summary_cache') || 'null');
+  if (!cached) return;
+  const text = cached.summary || '';
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(text).then(() => showToast('已複製', 'success'));
+  } else { showToast('複製失敗，請手動選中', 'error'); }
+}
+
+/** Edge Function 調用封裝（ai-summary 與 teacher-ops 共用錯誤處理） */
+async function invokeAI(fnName, body) {
+  try {
+    const { data, error } = await client.functions.invoke(fnName, { body });
+    if (error) { showToast('調用失敗：' + (error.message || ''), 'error'); return null; }
+    if (data && data.error) { showToast(data.error, 'error'); return null; }
+    return data;
+  } catch (e) {
+    showToast('網絡錯誤：' + (e.message || ''), 'error');
+    return null;
   }
 }
 
@@ -453,19 +631,38 @@ async function loadTContent() {
     const { data: badWords, error: bErr } = await client.from('profanity_words').select('*').order('word');
     if (bErr) throw bErr;
 
+    const poetThumb = (p) => {
+      const url = storagePublicUrl(p.avatar_url);
+      return url
+        ? `<img src="${esc(url)}" alt="" style="width:28px;height:28px;border-radius:6px;object-fit:cover;vertical-align:middle;margin-right:4px;" onerror="this.outerHTML='<span style=margin-right:4px;>${esc(p.avatar_emoji)}</span>'">`
+        : `<span style="font-size:16px;margin-right:4px;">${esc(p.avatar_emoji)}</span>`;
+    };
+    const styleLabel = { modern: '現代', classical: '古代', cantonese: '粵語' };
+
     c.innerHTML = `
       <h3 class="sec-title">📚 詩人管理</h3>
-      <div class="scroll-list" style="max-height:22vh;margin-bottom:14px;">
-        ${(poets || []).map(p => `<div class="row-item" style="display:flex;justify-content:space-between;align-items:center;">
-          <div><span style="font-size:16px;margin-right:4px;">${esc(p.avatar_emoji)}</span><strong>${esc(p.name)}</strong> <span style="color:#999;font-size:11px;">${esc(p.dynasty)}</span></div>
-          <button class="t-btn" style="${p.is_published ? 'background:#2ecc71;' : 'background:#ccc;'}font-size:11px;padding:3px 10px;" onclick="togglePub('poets','${p.id}')">${p.is_published ? '✅ 已發布' : '⛔ 已隱藏'}</button>
+      <div style="margin-bottom:8px;"><button class="t-btn" onclick="showPoetForm()">➕ 新增詩人</button></div>
+      <div class="scroll-list" style="max-height:24vh;margin-bottom:14px;">
+        ${(poets || []).map(p => `<div class="row-item" style="display:flex;justify-content:space-between;align-items:center;gap:6px;">
+          <div style="flex:1;min-width:0;">${poetThumb(p)}<strong>${esc(p.name)}</strong>
+            <span style="color:#999;font-size:11px;">${esc(p.dynasty)} · ${styleLabel[p.language_style] || ''}${p.tone ? ' · ' + esc(p.tone) : ''}</span></div>
+          <div style="flex-shrink:0;display:flex;gap:3px;">
+            <button class="t-btn" style="${p.is_published ? 'background:#2ecc71;' : 'background:#ccc;'}font-size:11px;padding:3px 8px;" onclick="togglePub('poets','${p.id}')">${p.is_published ? '✅' : '⛔'}</button>
+            <button class="t-btn" style="font-size:11px;padding:3px 8px;" onclick="showPoetForm('${p.id}')">編輯</button>
+            <button class="t-btn danger" style="font-size:11px;padding:3px 8px;" onclick="deletePoetConfirm('${p.id}','${esc(p.name)}')">刪</button>
+          </div>
         </div>`).join('') || '<p class="empty">無數據</p>'}
       </div>
       <h3 class="sec-title">📜 作品管理</h3>
+      <div style="margin-bottom:8px;"><button class="t-btn" onclick="showPostForm()">➕ 新增作品</button></div>
       <div class="scroll-list" style="max-height:20vh;margin-bottom:14px;">
-        ${(posts || []).map(post => `<div class="row-item" style="display:flex;justify-content:space-between;align-items:center;">
-          <div><strong>${esc(post.title)}</strong> <span style="color:#999;font-size:11px;">— ${esc(post.poets?.name || '—')}</span></div>
-          <button class="t-btn" style="${post.is_published ? 'background:#2ecc71;' : 'background:#ccc;'}font-size:11px;padding:3px 10px;" onclick="togglePub('posts','${post.id}')">${post.is_published ? '✅ 已發布' : '⛔ 已隱藏'}</button>
+        ${(posts || []).map(post => `<div class="row-item" style="display:flex;justify-content:space-between;align-items:center;gap:6px;">
+          <div style="flex:1;min-width:0;"><strong>${esc(post.title)}</strong> <span style="color:#999;font-size:11px;">— ${esc(post.poets?.name || '—')}</span></div>
+          <div style="flex-shrink:0;display:flex;gap:3px;">
+            <button class="t-btn" style="${post.is_published ? 'background:#2ecc71;' : 'background:#ccc;'}font-size:11px;padding:3px 8px;" onclick="togglePub('posts','${post.id}')">${post.is_published ? '✅' : '⛔'}</button>
+            <button class="t-btn" style="font-size:11px;padding:3px 8px;" onclick="showPostForm('${post.id}')">編輯</button>
+            <button class="t-btn danger" style="font-size:11px;padding:3px 8px;" onclick="deletePostConfirm('${post.id}','${esc(post.title)}')">刪</button>
+          </div>
         </div>`).join('') || '<p class="empty">無數據</p>'}
       </div>
       <h3 class="sec-title">🚫 違禁詞管理 <span style="font-weight:normal;color:#999;font-size:12px;">（學生留言過濾）</span></h3>
@@ -474,7 +671,7 @@ async function loadTContent() {
         <label style="font-size:11px;display:flex;align-items:center;gap:3px;"><input type="checkbox" id="newWordIsRegex"> 正則</label>
         <button class="t-btn" style="font-size:11px;padding:4px 12px;" onclick="addWord()">＋ 新增</button>
       </div>
-      <div class="scroll-list" style="max-height:20vh;">
+      <div class="scroll-list" style="max-height:18vh;">
         ${(badWords || []).map(w => `<div class="row-item" style="display:flex;justify-content:space-between;align-items:center;font-size:12px;">
           <div><code style="background:#f5f5f5;padding:1px 4px;border-radius:3px;">${esc(w.word)}</code>
           ${w.is_regex ? '<span style="color:#e67e22;font-size:10px;margin-left:4px;">正則</span>' : ''}</div>
@@ -484,7 +681,7 @@ async function loadTContent() {
           </div>
         </div>`).join('') || '<p class="empty">無違禁詞</p>'}
       </div>
-      <p style="color:#aaa;font-size:11px;margin-top:8px;">💡 隱藏詩人/作品後學生端不可見。違禁詞同時在前端和後端生效。</p>`;
+      <p style="color:#aaa;font-size:11px;margin-top:8px;">💡 新增詩人/作品默認未發布，編輯完成後點 ✅ 發布才對學生可見。有留言的詩人/作品不可刪除（可隱藏）。</p>`;
   } catch (e) {
     c.innerHTML = '<p class="empty">載入錯誤：' + esc(e.message || '') + '</p>';
   }
@@ -688,6 +885,233 @@ function refreshIfTab(tab) {
 window.addEventListener('beforeunload', () => {
   rtChannels.forEach(ch => client.removeChannel(ch));
 });
+
+// ============================================================
+// 004: 詩人/作品 CRUD（表單 modal + Storage 圖片直傳）
+// ============================================================
+
+/** Storage 公開 URL（DB 存相對路徑，渲染時拼當前環境域名 — D1） */
+function storagePublicUrl(relPath) {
+  if (!relPath) return null;
+  if (/^https?:\/\//.test(relPath)) return relPath;
+  return `${SUPABASE_URL}/storage/v1/object/public/poet-assets/${relPath}`;
+}
+
+/** 圖片直傳（登錄態自動帶 JWT；≤2MB + jpg/png/webp — FR-003） */
+async function uploadPoetAsset(file, path) {
+  if (!file) return null;
+  if (file.size > 2 * 1024 * 1024) { showToast('圖片不能超過 2MB', 'error'); return null; }
+  if (!/^image\/(jpeg|png|webp)$/.test(file.type)) { showToast('僅支持 jpg/png/webp', 'error'); return null; }
+  const ext = file.type.split('/')[1].replace('jpeg', 'jpg');
+  const full = `${path}.${ext}`;
+  const { error } = await client.storage.from('poet-assets')
+    .upload(full, file, { upsert: true, contentType: file.type });
+  if (error) { showToast('上傳失敗：' + (error.message || ''), 'error'); return null; }
+  return full; // 相對路徑
+}
+
+/** 詩人表單 modal（新增/編輯共用；高級折疊區可覆寫 prompt — Q1/D10） */
+async function showPoetForm(poetId) {
+  const isEdit = !!poetId;
+  let p = null;
+  let poetsList = [];
+  try {
+    const { data } = await client.from('poets').select('*').order('name');
+    poetsList = data || [];
+    p = isEdit ? poetsList.find(x => x.id === poetId) : null;
+  } catch (e) { /* 忽略，表單仍可開 */ }
+
+  const existing = document.getElementById('poetFormMask');
+  if (existing) existing.remove();
+  const mask = document.createElement('div');
+  mask.id = 'poetFormMask';
+  mask.className = 'fm-mask';
+  mask.onclick = (e) => { if (e.target === mask) mask.remove(); };
+  mask.innerHTML = `
+    <div class="fm-card">
+      <h3>${isEdit ? '✏️ 編輯詩人' : '➕ 新增詩人'}${isEdit && p ? '：' + esc(p.name) : ''}</h3>
+      <div class="fm-row">
+        <div><label>姓名 *</label><input type="text" id="pfName" value="${p ? esc(p.name) : ''}" maxlength="30"></div>
+        <div><label>朝代 *</label><input type="text" id="pfDynasty" value="${p ? esc(p.dynasty) : ''}" maxlength="20"></div>
+      </div>
+      <label>簡介 *</label>
+      <textarea id="pfBio" maxlength="500">${p ? esc(p.bio) : ''}</textarea>
+      <div class="fm-row">
+        <div><label>頭像 emoji（無圖時顯示）</label><input type="text" id="pfEmoji" value="${p ? esc(p.avatar_emoji) : '📜'}" maxlength="8"></div>
+        <div><label>語言風格</label>
+          <select id="pfStyle">
+            <option value="modern" ${!p || p.language_style === 'modern' ? 'selected' : ''}>現代語言</option>
+            <option value="classical" ${p && p.language_style === 'classical' ? 'selected' : ''}>古代語言</option>
+            <option value="cantonese" ${p && p.language_style === 'cantonese' ? 'selected' : ''}>香港本地粵語</option>
+          </select></div>
+      </div>
+      <label>性格特點（影響 AI 人格）</label>
+      <input type="text" id="pfPersonality" value="${p && p.personality ? esc(p.personality) : ''}" maxlength="200">
+      <label>語氣語調</label>
+      <input type="text" id="pfTone" value="${p && p.tone ? esc(p.tone) : ''}" maxlength="200">
+      <label>頭像圖片（jpg/png/webp ≤2MB）</label>
+      <div class="upload-box">
+        ${p && p.avatar_url ? `<img src="${esc(storagePublicUrl(p.avatar_url))}" onerror="this.style.display='none'">` : ''}
+        <input type="file" id="pfAvatarFile" accept="image/jpeg,image/png,image/webp" style="font-size:12px;">
+        <span class="upload-hint">${p && p.avatar_url ? '已傳，重選即覆蓋' : '可選'}</span>
+      </div>
+      <label>朋友圈背景圖</label>
+      <div class="upload-box">
+        ${p && p.bg_url ? `<img src="${esc(storagePublicUrl(p.bg_url))}" onerror="this.style.display='none'">` : ''}
+        <input type="file" id="pfBgFile" accept="image/jpeg,image/png,image/webp" style="font-size:12px;">
+        <span class="upload-hint">${p && p.bg_url ? '已傳，重選即覆蓋' : '可選'}</span>
+      </div>
+      <details class="fm-advanced">
+        <summary>⚙️ 高級：編輯完整人設 Prompt（默認自動生成）</summary>
+        <p style="font-size:11px;color:#999;margin:6px 0;">留空 = 保存時按上方字段自動生成/沿用；填寫 = 覆蓋。編輯人設字段不會重寫已保存的 Prompt。</p>
+        <textarea id="pfPrompt" placeholder="（留空使用自動生成）">${p ? esc(p.system_prompt) : ''}</textarea>
+      </details>
+      <div class="fm-actions">
+        <button class="t-btn" style="background:#999;" onclick="document.getElementById('poetFormMask').remove()">取消</button>
+        <button class="t-btn" onclick="savePoet('${poetId || ''}')">保存</button>
+      </div>
+    </div>`;
+  document.body.appendChild(mask);
+}
+
+/** 保存詩人（含圖片直傳 → 相對路徑回填） */
+async function savePoet(poetId) {
+  const val = (id) => (document.getElementById(id)?.value || '').trim();
+  const name = val('pfName');
+  const dynasty = val('pfDynasty');
+  const bio = val('pfBio');
+  if (!name || !dynasty || !bio) { showToast('姓名/朝代/簡介必填', 'error'); return; }
+
+  const payload = {
+    name, dynasty, bio,
+    avatar_emoji: val('pfEmoji') || '📜',
+    language_style: document.getElementById('pfStyle').value,
+    personality: val('pfPersonality') || null,
+    tone: val('pfTone') || null,
+  };
+  const promptVal = val('pfPrompt');
+  if (promptVal) payload.system_prompt = promptVal; // 顯式覆寫（D10：不傳則沿用/自動生成）
+
+  // 圖片直傳（先上傳拿路徑再入庫；新增詩人用臨時 id 路徑，入庫後不改——路徑唯一即可）
+  const avatarFile = document.getElementById('pfAvatarFile')?.files?.[0];
+  const bgFile = document.getElementById('pfBgFile')?.files?.[0];
+  const tempKey = poetId || ('new-' + Date.now());
+  showToast('保存中…');
+  if (avatarFile) {
+    const path = await uploadPoetAsset(avatarFile, `poets/${tempKey}/avatar`);
+    if (avatarFile && !path) return; // 上傳失敗已提示
+    if (path) payload.avatar_url = path;
+  }
+  if (bgFile) {
+    const path = await uploadPoetAsset(bgFile, `poets/${tempKey}/bg`);
+    if (bgFile && !path) return;
+    if (path) payload.bg_url = path;
+  }
+
+  const res = poetId
+    ? await ops('edit_poet', { id: poetId, ...payload })
+    : await ops('add_poet', payload);
+  if (res) {
+    document.getElementById('poetFormMask')?.remove();
+    showToast(poetId ? '已保存' : '已新增（默認未發布，發布後學生可見）', 'success');
+    loadTContent();
+  }
+}
+
+/** 刪除詩人（409 引用保護提示會由 ops 展示） */
+async function deletePoetConfirm(id, name) {
+  if (!confirm(`確定刪除詩人「${name}」？有留言時將被拒絕。`)) return;
+  const res = await ops('delete_poet', { id });
+  if (res) { showToast('已刪除', 'success'); loadTContent(); }
+}
+
+/** 作品表單 modal */
+async function showPostForm(postId) {
+  const isEdit = !!postId;
+  let postsList = [];
+  let poetsList = [];
+  try {
+    const [pr, pt] = await Promise.all([
+      client.from('posts').select('*, poets(name)').order('created_at'),
+      client.from('poets').select('*').order('name'),
+    ]);
+    postsList = pr.data || [];
+    poetsList = pt.data || [];
+  } catch (e) { /* 忽略 */ }
+  const post = isEdit ? postsList.find(x => x.id === postId) : null;
+
+  const existing = document.getElementById('postFormMask');
+  if (existing) existing.remove();
+  const mask = document.createElement('div');
+  mask.id = 'postFormMask';
+  mask.className = 'fm-mask';
+  mask.onclick = (e) => { if (e.target === mask) mask.remove(); };
+  mask.innerHTML = `
+    <div class="fm-card">
+      <h3>${isEdit ? '✏️ 編輯作品' : '➕ 新增作品'}</h3>
+      <label>所屬詩人 *</label>
+      <select id="ptfPoet" ${isEdit ? 'disabled' : ''}>
+        ${poetsList.map(p => `<option value="${p.id}" ${post && post.poet_id === p.id ? 'selected' : ''}>${esc(p.avatar_emoji)} ${esc(p.name)}</option>`).join('')}
+      </select>
+      <label>標題 *</label>
+      <input type="text" id="ptfTitle" value="${post ? esc(post.title) : ''}" maxlength="100">
+      <label>正文 *</label>
+      <textarea id="ptfContent" style="min-height:100px;" maxlength="2000">${post ? esc(post.content) : ''}</textarea>
+      <label>背景故事</label>
+      <textarea id="ptfStory" maxlength="300">${post && post.background_story ? esc(post.background_story) : ''}</textarea>
+      <label>作品配圖（可選）</label>
+      <div class="upload-box">
+        ${post && post.bg_url ? `<img src="${esc(storagePublicUrl(post.bg_url))}" onerror="this.style.display='none'">` : ''}
+        <input type="file" id="ptfBgFile" accept="image/jpeg,image/png,image/webp" style="font-size:12px;">
+        <span class="upload-hint">${post && post.bg_url ? '已傳，重選即覆蓋' : '可選'}</span>
+      </div>
+      <div class="fm-actions">
+        <button class="t-btn" style="background:#999;" onclick="document.getElementById('postFormMask').remove()">取消</button>
+        <button class="t-btn" onclick="savePost('${postId || ''}')">保存</button>
+      </div>
+    </div>`;
+  document.body.appendChild(mask);
+}
+
+/** 保存作品 */
+async function savePost(postId) {
+  const val = (id) => (document.getElementById(id)?.value || '').trim();
+  const title = val('ptfTitle');
+  const content = val('ptfContent');
+  const poetSel = document.getElementById('ptfPoet');
+  const poetId = poetSel?.value;
+  if (!title || !content) { showToast('標題/正文必填', 'error'); return; }
+
+  const payload = {
+    title,
+    content,
+    background_story: val('ptfStory') || null,
+  };
+  if (!postId) payload.poet_id = poetId; // 編輯不可改詩人
+
+  const bgFile = document.getElementById('ptfBgFile')?.files?.[0];
+  showToast('保存中…');
+  if (bgFile) {
+    const path = await uploadPoetAsset(bgFile, `posts/${postId || 'new-' + Date.now()}/bg`);
+    if (!path) return;
+    payload.bg_url = path;
+  }
+
+  const res = postId
+    ? await ops('edit_post', { id: postId, ...payload })
+    : await ops('add_post', payload);
+  if (res) {
+    document.getElementById('postFormMask')?.remove();
+    showToast(postId ? '已保存' : '已新增（默認未發布）', 'success');
+    loadTContent();
+  }
+}
+
+async function deletePostConfirm(id, title) {
+  if (!confirm(`確定刪除作品《${title}》？有留言時將被拒絕。`)) return;
+  const res = await ops('delete_post', { id });
+  if (res) { showToast('已刪除', 'success'); loadTContent(); }
+}
 
 // ============================================================
 // 工具函數

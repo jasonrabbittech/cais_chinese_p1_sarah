@@ -433,6 +433,288 @@ Deno.serve(async (req: Request) => {
         return jsonResponse({ success: true }, 200, cors);
       }
 
+      // ---------- 詩人 CRUD（004 / FR-002~005，D10 覆寫語義） ----------
+      case "add_poet": {
+        const name = typeof body?.name === "string" ? body.name.trim() : "";
+        const dynasty = typeof body?.dynasty === "string"
+          ? body.dynasty.trim()
+          : "";
+        const bio = typeof body?.bio === "string" ? body.bio.trim() : "";
+        if (!name || name.length > 30) {
+          return jsonResponse({ error: "name 必填且 ≤30 字符" }, 400, cors);
+        }
+        if (!dynasty || !bio || bio.length > 500) {
+          return jsonResponse(
+            { error: "dynasty/bio 必填且 bio ≤500 字符" },
+            400,
+            cors,
+          );
+        }
+        const style = typeof body?.language_style === "string"
+          ? body.language_style
+          : "modern";
+        if (!["modern", "classical", "cantonese"].includes(style)) {
+          return jsonResponse({ error: "language_style 枚舉無效" }, 400, cors);
+        }
+        const tone = typeof body?.tone === "string" ? body.tone.trim() : null;
+        const personality = typeof body?.personality === "string"
+          ? body.personality.trim()
+          : null;
+        if ((tone && tone.length > 200) || (personality && personality.length > 200)) {
+          return jsonResponse({ error: "tone/personality ≤200 字符" }, 400, cors);
+        }
+        const emoji = typeof body?.avatar_emoji === "string" && body.avatar_emoji.trim()
+          ? body.avatar_emoji.trim()
+          : "📜";
+        // D10：未顯式傳 system_prompt 時由結構化字段按模板生成（與 002 種子同構）
+        const systemPrompt = typeof body?.system_prompt === "string" &&
+            body.system_prompt.trim()
+          ? body.system_prompt.trim().slice(0, 2000)
+          : `你是${name}（${dynasty}），${bio.replace(/[。．.]+$/, "")}。你正在使用一個名為「朋友圈」的現代社交平台，剛剛發了一條狀態。` +
+            (personality ? `【性格】${personality}。` : "") +
+            (tone ? `【語氣】${tone}。` : "") +
+            `【回覆要求】1) 簡短 50–150 字，像朋友圈留言；2) 適當引用詩詞名句但不生硬；3) 絕不說「我是AI」。只輸出回覆內容。`;
+        const res = await supabaseRest("poets", {
+          method: "POST",
+          headers: { Prefer: "return=representation" },
+          body: JSON.stringify([{
+            name,
+            dynasty,
+            bio,
+            avatar_emoji: emoji,
+            system_prompt: systemPrompt,
+            tone,
+            personality,
+            language_style: style,
+            avatar_url: typeof body?.avatar_url === "string"
+              ? body.avatar_url
+              : null,
+            bg_url: typeof body?.bg_url === "string" ? body.bg_url : null,
+            is_published: false, // 新詩人默認未發布（spec Scenario 2）
+          }]),
+        });
+        if (!res.ok) {
+          const errText = await res.text();
+          const status = errText.includes("duplicate key") ? 409 : 500;
+          return jsonResponse(
+            { error: status === 409 ? "詩人姓名已存在" : "新增失敗: " + errText.slice(0, 150) },
+            status,
+            cors,
+          );
+        }
+        const rows = await res.json();
+        return jsonResponse(
+          { success: true, id: rows?.[0]?.id, is_published: false },
+          200,
+          cors,
+        );
+      }
+
+      case "edit_poet": {
+        const id = body?.id;
+        if (!isValidUUID(id)) {
+          return jsonResponse({ error: "無效的 id" }, 400, cors);
+        }
+        const updates: Record<string, unknown> = {};
+        if (typeof body?.name === "string" && body.name.trim()) {
+          updates.name = body.name.trim();
+        }
+        if (typeof body?.dynasty === "string" && body.dynasty.trim()) {
+          updates.dynasty = body.dynasty.trim();
+        }
+        if (typeof body?.bio === "string" && body.bio.trim()) {
+          updates.bio = body.bio.trim();
+        }
+        if (typeof body?.avatar_emoji === "string" && body.avatar_emoji.trim()) {
+          updates.avatar_emoji = body.avatar_emoji.trim();
+        }
+        if (typeof body?.language_style === "string") {
+          if (!["modern", "classical", "cantonese"].includes(body.language_style)) {
+            return jsonResponse({ error: "language_style 枚舉無效" }, 400, cors);
+          }
+          updates.language_style = body.language_style;
+        }
+        if (typeof body?.tone === "string") updates.tone = body.tone.trim();
+        if (typeof body?.personality === "string") {
+          updates.personality = body.personality.trim();
+        }
+        if (typeof body?.avatar_url === "string") updates.avatar_url = body.avatar_url;
+        if (typeof body?.bg_url === "string") updates.bg_url = body.bg_url;
+        // D10 保護：僅顯式傳 system_prompt 才覆寫；改人設字段永不重寫已有 prompt
+        if (typeof body?.system_prompt === "string" && body.system_prompt.trim()) {
+          updates.system_prompt = body.system_prompt.trim().slice(0, 2000);
+        }
+        if (!Object.keys(updates).length) {
+          return jsonResponse({ error: "無可更新字段" }, 400, cors);
+        }
+        const res = await supabaseRest(`poets?id=eq.${id}`, {
+          method: "PATCH",
+          headers: { Prefer: "return=representation" },
+          body: JSON.stringify(updates),
+        });
+        if (!res.ok) return jsonResponse({ error: "更新失敗" }, 500, cors);
+        const rows = await res.json();
+        if (!rows?.length) {
+          return jsonResponse({ error: "詩人不存在" }, 404, cors);
+        }
+        return jsonResponse({ success: true }, 200, cors);
+      }
+
+      case "delete_poet": {
+        const id = body?.id;
+        if (!isValidUUID(id)) {
+          return jsonResponse({ error: "無效的 id" }, 400, cors);
+        }
+        // 引用保護（D7）：兩步查詢（空 in.() 子查詢在 PostgREST 非法——無作品詩人直接可刪）
+        const postsRes = await supabaseRest(
+          `posts?poet_id=eq.${id}&select=id`,
+          { method: "GET" },
+        );
+        if (!postsRes.ok) {
+          return jsonResponse({ error: "無法驗證引用數據，已拒絕刪除" }, 500, cors);
+        }
+        const postIds = (await postsRes.json() || []).map((p: { id: string }) => p.id);
+        if (postIds.length > 0) {
+          const cntRes = await supabaseRest(
+            `comments?select=id&post_id=in.(${postIds.join(",")})`,
+            { method: "GET" },
+          );
+          if (!cntRes.ok) {
+            return jsonResponse({ error: "無法驗證引用數據，已拒絕刪除" }, 500, cors);
+          }
+          const cnt = await cntRes.json();
+          if (Array.isArray(cnt) && cnt.length > 0) {
+            return jsonResponse(
+              { error: `該詩人名下有 ${cnt.length} 條學生留言，請先刪除留言或改用「隱藏」` },
+              409,
+              cors,
+            );
+          }
+        }
+        const res = await supabaseRest(`poets?id=eq.${id}`, {
+          method: "DELETE",
+        });
+        if (!res.ok) return jsonResponse({ error: "刪除失敗" }, 500, cors);
+        return jsonResponse({ success: true }, 200, cors);
+      }
+
+      // ---------- 作品 CRUD（004 / FR-006） ----------
+      case "add_post": {
+        const poetId = body?.poet_id;
+        const title = typeof body?.title === "string" ? body.title.trim() : "";
+        const content = typeof body?.content === "string"
+          ? body.content.trim()
+          : "";
+        if (!isValidUUID(poetId)) {
+          return jsonResponse({ error: "無效的 poet_id" }, 400, cors);
+        }
+        if (!title || title.length > 100) {
+          return jsonResponse({ error: "title 必填且 ≤100 字符" }, 400, cors);
+        }
+        if (!content || content.length > 2000) {
+          return jsonResponse({ error: "content 必填且 ≤2000 字符" }, 400, cors);
+        }
+        // 詩人存在性
+        const pRes = await supabaseRest(`poets?id=eq.${poetId}&select=id`, {
+          method: "GET",
+        });
+        const pRows = pRes.ok ? await pRes.json() : [];
+        if (!pRows?.length) {
+          return jsonResponse({ error: "詩人不存在" }, 404, cors);
+        }
+        const res = await supabaseRest("posts", {
+          method: "POST",
+          headers: { Prefer: "return=representation" },
+          body: JSON.stringify([{
+            poet_id: poetId,
+            title,
+            content,
+            background_story: typeof body?.background_story === "string"
+              ? body.background_story
+              : null,
+            bg_url: typeof body?.bg_url === "string" ? body.bg_url : null,
+            is_published: body?.is_published === true,
+          }]),
+        });
+        if (!res.ok) {
+          const errText = await res.text();
+          return jsonResponse(
+            { error: "新增失敗: " + errText.slice(0, 150) },
+            500,
+            cors,
+          );
+        }
+        const rows = await res.json();
+        return jsonResponse(
+          { success: true, id: rows?.[0]?.id },
+          200,
+          cors,
+        );
+      }
+
+      case "edit_post": {
+        const id = body?.id;
+        if (!isValidUUID(id)) {
+          return jsonResponse({ error: "無效的 id" }, 400, cors);
+        }
+        const updates: Record<string, unknown> = {};
+        if (typeof body?.title === "string" && body.title.trim()) {
+          updates.title = body.title.trim();
+        }
+        if (typeof body?.content === "string" && body.content.trim()) {
+          updates.content = body.content.trim();
+        }
+        if (typeof body?.background_story === "string") {
+          updates.background_story = body.background_story;
+        }
+        if (typeof body?.bg_url === "string") updates.bg_url = body.bg_url;
+        if (typeof body?.is_published === "boolean") {
+          updates.is_published = body.is_published;
+        }
+        if (!Object.keys(updates).length) {
+          return jsonResponse({ error: "無可更新字段" }, 400, cors);
+        }
+        const res = await supabaseRest(`posts?id=eq.${id}`, {
+          method: "PATCH",
+          headers: { Prefer: "return=representation" },
+          body: JSON.stringify(updates),
+        });
+        if (!res.ok) return jsonResponse({ error: "更新失敗" }, 500, cors);
+        const rows = await res.json();
+        if (!rows?.length) {
+          return jsonResponse({ error: "作品不存在" }, 404, cors);
+        }
+        return jsonResponse({ success: true }, 200, cors);
+      }
+
+      case "delete_post": {
+        const id = body?.id;
+        if (!isValidUUID(id)) {
+          return jsonResponse({ error: "無效的 id" }, 400, cors);
+        }
+        // 引用保護（D7）（fail-closed）
+        const cntRes = await supabaseRest(
+          `comments?post_id=eq.${id}&select=id`,
+          { method: "GET" },
+        );
+        if (!cntRes.ok) {
+          return jsonResponse({ error: "無法驗證引用數據，已拒絕刪除" }, 500, cors);
+        }
+        const cnt = await cntRes.json();
+        if (Array.isArray(cnt) && cnt.length > 0) {
+          return jsonResponse(
+            { error: `該作品下有 ${cnt.length} 條學生留言，請先刪除留言或改用「隱藏」` },
+            409,
+            cors,
+          );
+        }
+        const res = await supabaseRest(`posts?id=eq.${id}`, {
+          method: "DELETE",
+        });
+        if (!res.ok) return jsonResponse({ error: "刪除失敗" }, 500, cors);
+        return jsonResponse({ success: true }, 200, cors);
+      }
+
       default:
         return jsonResponse(
           { error: "未知操作: " + String(action) },

@@ -10,6 +10,7 @@
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="shortcut icon" href="favicon.svg">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -559,6 +560,34 @@
     border-radius: 6px;
     margin-left: 4px;
   }
+
+  /* ===== 設置按鈕 + QR 分享（004） ===== */
+  .settings-btn {
+    background: none; border: none; font-size: 18px; cursor: pointer;
+    padding: 4px 8px; line-height: 1;
+  }
+  .qr-modal-mask {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.55);
+    display: none; align-items: center; justify-content: center; z-index: 2000;
+  }
+  .qr-modal-mask.show { display: flex; }
+  .qr-card {
+    background: #fff; border-radius: 14px; padding: 24px;
+    width: 82%; max-width: 300px; text-align: center;
+  }
+  .qr-card h3 { font-size: 16px; margin-bottom: 6px; }
+  .qr-card p { font-size: 12px; color: #999; margin-bottom: 14px; }
+  #qrBox { display: flex; justify-content: center; margin-bottom: 14px; min-height: 160px; }
+  #qrBox canvas, #qrBox img { image-rendering: pixelated; }
+  .qr-link-row { display: flex; gap: 6px; align-items: center; }
+  .qr-link-row input {
+    flex: 1; font-size: 11px; padding: 7px 10px; border: 1px solid #ddd;
+    border-radius: 8px; outline: none; color: #576b95;
+  }
+  .qr-link-row button {
+    background: #07c160; color: #fff; border: none; border-radius: 8px;
+    padding: 7px 12px; font-size: 12px; cursor: pointer; white-space: nowrap;
+  }
   </style>
   
   <!-- Toast 通知 -->
@@ -579,10 +608,11 @@
   <!-- 主容器 -->
   <div class="container">
 
-    <!-- 頂部導航（無「朋友圈」字樣） -->
+    <!-- 頂部導航（右側設置按鈕：QR 分享，004） -->
     <div class="header">
       <span class="header-left">←</span>
       <span class="header-title"></span>
+      <button class="settings-btn" onclick="toggleQRModal()" title="分享">⚙️</button>
     </div>
 
     <!-- 詩人標籤（多詩人） -->
@@ -638,6 +668,19 @@
           <span class="emoji">💬</span>
           <p>還沒有留言，來搶沙發吧！</p>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- QR 分享彈窗（004：掃碼加入朋友圈） -->
+  <div class="qr-modal-mask" id="qrModal" onclick="if(event.target===this) toggleQRModal()">
+    <div class="qr-card">
+      <h3>📱 掃碼加入朋友圈</h3>
+      <p>用相機掃描下方二維碼，即可進入詩人朋友圈</p>
+      <div id="qrBox"></div>
+      <div class="qr-link-row">
+        <input type="text" id="qrLinkInput" readonly>
+        <button onclick="copyQRLink()">複製</button>
       </div>
     </div>
   </div>
@@ -916,19 +959,43 @@ async function selectPost(postId) {
   subscribeRT();
 }
 
+/** Storage 公開 URL 拼接（004 D1：DB 存相對路徑，渲染時拼當前環境域名） */
+function storagePublicUrl(relPath) {
+  if (!relPath) return null;
+  if (/^https?:\/\//.test(relPath)) return relPath; // 容錯：已是完整 URL
+  return `${SUPABASE_URL}/storage/v1/object/public/poet-assets/${relPath}`;
+}
+
 function renderPost(post) {
   const poet = poets.find(p => p.id === currentPoetId);
   if (!post) return;
   document.getElementById('postAuthorName').textContent = poet ? poet.name : '詩人';
   document.getElementById('postAuthorName2').textContent = poet ? poet.name : '詩人';
+  // 004 D9 回退鏈：頭像 avatar_url > emoji（onerror 再回退 emoji）
   const avatar = document.getElementById('postAvatarOverlay');
   if (avatar) {
-    avatar.textContent = poet ? poet.avatar_emoji : '📜';
-    avatar.style.background = 'linear-gradient(135deg,#a8edea,#fed6e3)';
+    const imgUrl = poet ? storagePublicUrl(poet.avatar_url) : null;
+    if (imgUrl) {
+      avatar.innerHTML = `<img src="${esc(imgUrl)}" alt="${esc(poet.name)}" style="width:100%;height:100%;object-fit:cover;" onerror="this.parentNode.textContent='${esc(poet.avatar_emoji || '📜')}';this.parentNode.style.background='linear-gradient(135deg,#a8edea,#fed6e3)';">`;
+      avatar.style.background = 'none';
+    } else {
+      avatar.textContent = poet ? poet.avatar_emoji : '📜';
+      avatar.style.background = 'linear-gradient(135deg,#a8edea,#fed6e3)';
+    }
     avatar.style.display = 'flex';
     avatar.style.alignItems = 'center';
     avatar.style.justifyContent = 'center';
     avatar.style.fontSize = '30px';
+  }
+  // 004 D9 回退鏈：背景 post.bg_url > poet.bg_url > 默認 post-bg.jpg
+  const bgArea = document.querySelector('.post-image-area');
+  if (bgArea) {
+    const bgUrl = storagePublicUrl(post.bg_url) || storagePublicUrl(poet && poet.bg_url) || "url('post-bg.jpg')";
+    if (typeof bgUrl === 'string' && bgUrl.startsWith('url(')) {
+      bgArea.style.background = `${bgUrl} center top / cover no-repeat`;
+    } else {
+      bgArea.style.background = `url('${bgUrl}') center top / cover no-repeat`;
+    }
   }
   const paras = String(post.content || '').split('\n').filter(Boolean).map(t => `<p>${esc(t)}</p>`).join('');
   document.getElementById('postText').innerHTML = paras;
@@ -1073,7 +1140,8 @@ async function submitFollowUp(commentId) {
   const input = document.getElementById('followInput-' + commentId);
   const msg = input ? input.value.trim() : '';
   if (!msg) { showToast('請輸入追問內容', 'error'); return; }
-  if (containsProfanity(msg)) { showToast('留言內容不當，請使用文明用語 🙏', 'error'); return; }
+  const msgHit = findProfanity(msg);
+  if (msgHit) { showToast(`追問包含違禁詞「${maskWord(msgHit)}」，請修改後再發送`, 'error'); return; }
   const last = getLastReply(commentId);
   if (last && last.round >= MAX_ROUNDS) { showToast('已達最多輪數', 'error'); return; }
 
@@ -1159,23 +1227,28 @@ const PROFANITY_REGEX = [
   /b\s*i\s*t\s*c\s*h/gi,
 ];
 
-function containsProfanity(text) {
+/** 檢測並返回首個命中違禁詞（004 D5：明確命中原因；未命中返回 null） */
+function findProfanity(text) {
   const lower = text.toLowerCase();
-  // 硬編碼默認詞
   for (const word of PROFANITY_WORDS) {
-    if (lower.includes(word.toLowerCase())) return true;
+    if (lower.includes(word.toLowerCase())) return word;
   }
   for (const re of PROFANITY_REGEX) {
-    if (re.test(text)) return true;
+    if (re.test(text)) return re.source.slice(0, 20);
   }
-  // 資料庫自定義詞（教師後台管理）
   for (const w of (window.__customBadWords || [])) {
     if (!w.is_active) continue;
-    if (w.is_regex) { try { if (new RegExp(w.word, 'gi').test(text)) return true; } catch(e){} }
-    else if (lower.includes(w.word.toLowerCase())) return true;
+    if (w.is_regex) { try { if (new RegExp(w.word, 'gi').test(text)) return w.word; } catch(e){} }
+    else if (lower.includes(w.word.toLowerCase())) return w.word;
   }
-  return false;
+  return null;
 }
+
+/** 違禁詞掩碼（每字→＊，不反向展示原文 — spec Scenario 7） */
+function maskWord(w) { return String(w).split('').map(() => '＊').join(''); }
+
+/** containsProfanity 兼容包裝（舊調用點） */
+function containsProfanity(text) { return findProfanity(text) !== null; }
 
 /** 載入教師自訂違禁詞（頁面初始化時調用） */
 async function loadCustomBadWords() {
@@ -1193,9 +1266,10 @@ async function submitComment() {
   if (!content) return;
   if (!currentUserName) { showToast('請先輸入姓名', 'error'); return; }
   if (!currentPostId) { showToast('請先選擇作品', 'error'); return; }
-  // 不當內容檢查
-  if (containsProfanity(content)) {
-    showToast('留言內容不當，請使用文明用語 🙏', 'error');
+  // 不當內容檢查（004 D5：顯示具體命中原因掩碼）
+  const contentHit = findProfanity(content);
+  if (contentHit) {
+    showToast(`留言包含違禁詞「${maskWord(contentHit)}」，請修改後再發送`, 'error');
     input.focus();
     return;
   }
@@ -1298,6 +1372,49 @@ function fmtT(iso){
 }
 
 function focusInput(){document.getElementById('commentInput').focus(); closePopup();}
+
+// ========== QR 分享（004 / FR-001，research D6：前端生成，僅 QR） ==========
+/** 當前環境學生端 URL（staging/生產自動對應） */
+function studentAppUrl() {
+  return location.origin + location.pathname.replace(/admin\/.*$/, '');
+}
+
+function toggleQRModal() {
+  const modal = document.getElementById('qrModal');
+  const showing = modal.classList.toggle('show');
+  if (showing) generateQR();
+}
+
+function generateQR() {
+  const url = studentAppUrl();
+  document.getElementById('qrLinkInput').value = url;
+  const box = document.getElementById('qrBox');
+  box.innerHTML = '';
+  try {
+    // CDN 庫 qrcode-generator（typeNumber 0=自動，糾錯 M）
+    const qr = qrcode(0, 'M');
+    qr.addData(url);
+    qr.make();
+    box.innerHTML = qr.createImgTag(6, 12); // 6px 模組 + 12px 邊距
+  } catch (e) {
+    // fallback：庫未載入或生成失敗 → 純鏈接提示
+    box.innerHTML = '<p style="font-size:12px;color:#999;padding:20px 8px;">二維碼暫不可用，請複製下方鏈接分享</p>';
+    console.warn('QR 生成失敗:', e);
+  }
+}
+
+function copyQRLink() {
+  const input = document.getElementById('qrLinkInput');
+  input.select();
+  try {
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(input.value).then(() => showToast('鏈接已複製', 'success'));
+    } else {
+      document.execCommand('copy');
+      showToast('鏈接已複製', 'success');
+    }
+  } catch (e) { showToast('複製失敗，請手動選中複製', 'error'); }
+}
 </script>
 </body>
 </html>
