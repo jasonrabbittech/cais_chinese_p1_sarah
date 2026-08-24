@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <title>教師後台 · 詩人朋友圈</title>
+  <link rel="icon" href="../favicon.svg" type="image/svg+xml">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang TC", "Microsoft JhengHei", sans-serif;
+      background: #f0f2f5; color: #333; line-height: 1.6;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* ===== 登录视图 ===== */
+    #loginView {
+      min-height: 100vh; display: flex; align-items: center; justify-content: center;
+      background: linear-gradient(135deg, #576b95 0%, #3a4a6b 100%);
+      padding: 16px;
+    }
+    .login-card {
+      background: #fff; border-radius: 14px; padding: 32px 28px;
+      width: 100%; max-width: 360px; box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+    }
+    .login-card h1 { font-size: 20px; text-align: center; margin-bottom: 4px; }
+    .login-card .sub { font-size: 12px; color: #999; text-align: center; margin-bottom: 22px; }
+    .login-card label { display: block; font-size: 13px; color: #555; margin: 10px 0 4px; }
+    .login-card input {
+      width: 100%; padding: 11px 14px; border: 1px solid #ddd;
+      border-radius: 10px; font-size: 15px; outline: none; font-family: inherit;
+    }
+    .login-card input:focus { border-color: #576b95; }
+    .login-card button {
+      width: 100%; padding: 12px; margin-top: 20px; background: #576b95; color: #fff;
+      border: none; border-radius: 10px; font-size: 16px; cursor: pointer; font-family: inherit;
+    }
+    .login-card button:disabled { background: #b9c2d4; cursor: not-allowed; }
+    #loginError { color: #e74c3c; font-size: 13px; margin-top: 10px; text-align: center; min-height: 18px; }
+
+    /* ===== 管理视图 ===== */
+    #appView { display: none; max-width: 760px; margin: 0 auto; padding: 16px; }
+    .admin-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 4px 10px;
+    }
+    .admin-header h1 { font-size: 19px; color: #2c3e50; }
+    .admin-header .who { font-size: 12px; color: #999; margin-top: 2px; }
+    .t-tabs { display: flex; gap: 4px; margin-bottom: 14px; border-bottom: 1px solid #e0e0e0; overflow-x: auto; }
+    .t-tab {
+      padding: 9px 14px; background: none; border: none; white-space: nowrap;
+      font-size: 14px; color: #999; cursor: pointer; font-family: inherit;
+      border-bottom: 2px solid transparent; margin-bottom: -1px;
+    }
+    .t-tab.active { color: #576b95; border-bottom-color: #576b95; font-weight: 500; }
+    .panel { background: #fff; border-radius: 10px; padding: 18px; box-shadow: 0 1px 6px rgba(0,0,0,0.06); }
+    .t-btn {
+      padding: 6px 12px; background: #576b95; color: #fff;
+      border: none; border-radius: 6px; font-size: 12px; cursor: pointer;
+      margin: 3px; font-family: inherit;
+    }
+    .t-btn.danger { background: #fa5151; }
+    .t-btn.logout { background: none; color: #576b95; border: 1px solid #576b95; }
+    .t-btn:active { opacity: 0.85; }
+    .t-ctx { color: #999; font-size: 11px; margin-top: 2px; }
+    .loading { color: #999; text-align: center; padding: 30px; }
+    .empty { color: #bbb; text-align: center; padding: 30px; font-size: 14px; }
+    .scroll-list { max-height: 60vh; overflow-y: auto; }
+    .row-item { padding: 10px 6px; border-bottom: 1px solid #f0f0f0; }
+    .thread-box { margin-left: 8px; border-left: 2px solid #e8e8e8; padding-left: 10px; margin-top: 6px; }
+    .followup-q { margin: 6px 0; padding: 6px 8px; background: #fff8e1; border-radius: 6px; font-size: 12px; }
+    .reply-node { margin: 6px 0; font-size: 13px; }
+    .badge {
+      display: inline-block; font-size: 10px; padding: 1px 6px; border-radius: 8px;
+      color: #fff; margin-left: 4px; vertical-align: middle;
+    }
+    .sec-title { font-size: 14px; margin: 14px 0 8px; color: #2c3e50; }
+    .inline-input {
+      padding: 5px 9px; border: 1px solid #ddd; border-radius: 6px;
+      font-size: 13px; outline: none; font-family: inherit;
+    }
+    .tpl-item { padding: 9px 8px; border-bottom: 1px solid #f0f0f0; font-size: 13px; }
+    textarea.edit-ta {
+      width: 95%; min-height: 56px; font-size: 13px; color: #576b95;
+      background: #f0f4ff; padding: 6px; border-radius: 6px;
+      border: 1px solid #576b95; font-family: inherit;
+    }
+    .new-badge {
+      display:inline-block; background:#2ecc71; color:#fff; font-size:10px;
+      padding:1px 6px; border-radius:8px; margin-left:6px;
+    }
+    /* Toast */
+    #toast {
+      position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+      background: rgba(0,0,0,0.8); color: #fff; padding: 12px 24px;
+      border-radius: 8px; font-size: 14px; z-index: 9999; display: none;
+      max-width: 90%; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+    .live-dot {
+      display:inline-block; width:8px; height:8px; border-radius:50%;
+      background:#2ecc71; margin-right:4px; animation: pulse 2s infinite;
+    }
+    @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
+  </style>
+</head>
+<body>
+
+  <!-- ===== 登录视图（未登录时唯一可见） ===== -->
+  <div id="loginView">
+    <div class="login-card">
+      <h1>🔐 教師後台</h1>
+      <p class="sub">詩人朋友圈 · 管理門戶</p>
+      <label for="emailInput">郵箱</label>
+      <input type="email" id="emailInput" placeholder="teacher@school.edu" autocomplete="username">
+      <label for="pwInput">密碼</label>
+      <input type="password" id="pwInput" placeholder="••••••••" autocomplete="current-password"
+             onkeypress="if(event.key==='Enter') doLogin()">
+      <div id="loginError"></div>
+      <button id="loginBtn" onclick="doLogin()">登入</button>
+    </div>
+  </div>
+
+  <!-- ===== 管理视图（登录后显示） ===== -->
+  <div id="appView">
+    <div class="admin-header">
+      <div>
+        <h1>🎓 教師後台</h1>
+        <div class="who"><span class="live-dot"></span>即時連線 · <span id="whoEmail"></span></div>
+      </div>
+      <button class="t-btn logout" onclick="doLogout()">登出</button>
+    </div>
+    <div class="t-tabs">
+      <button class="t-tab active" onclick="switchTab('comments',this)">所有留言</button>
+      <button class="t-tab" onclick="switchTab('stats',this)">統計</button>
+      <button class="t-tab" onclick="switchTab('content',this)">內容管理</button>
+      <button class="t-tab" onclick="switchTab('templates',this)">回覆模板</button>
+    </div>
+    <div class="panel" id="teacherContent"></div>
+  </div>
+
+  <div id="toast"></div>
+
+<script>
+// ========== Supabase 設定（由 CI/CD 構建時注入，與學生端同機制） ==========
+const SUPABASE_URL = '%%SUPABASE_URL%%';
+const SUPABASE_ANON_KEY = '%%SUPABASE_ANON_KEY%%';
+const { createClient } = supabase;
+const client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// ========== 全局狀態 ==========
+let currentTab = 'comments';
+let commentsCache = [];        // 記錄 id → post 上下文映射，供 Realtime 補拉用
+let rtChannels = [];
+
+// ============================================================
+// 登錄牆（FR-001/002）：onAuthStateChange 驅動視圖切換
+// ============================================================
+window.addEventListener('DOMContentLoaded', async () => {
+  // 首屏：已有 session 則直接進管理視圖
+  const { data: { session } } = await client.auth.getSession();
+  if (session) showApp(session.user.email);
+  // 登入/登出事件驅動
+  client.auth.onAuthStateChange((event, session) => {
+    if (event === 'SIGNED_IN' && session) showApp(session.user.email);
+    if (event === 'SIGNED_OUT') showLogin();
+  });
+});
+
+function showApp(email) {
+  document.getElementById('loginView').style.display = 'none';
+  document.getElementById('appView').style.display = 'block';
+  document.getElementById('whoEmail').textContent = email || '';
+  if (currentTab) loadTab(currentTab);
+  subscribeAdminRT();
+}
+function showLogin() {
+  document.getElementById('appView').style.display = 'none';
+  document.getElementById('loginView').style.display = 'flex';
+  document.getElementById('pwInput').value = '';
+  rtChannels.forEach(ch => client.removeChannel(ch));
+  rtChannels = [];
+}
+
+/** 登入（錯誤憑據明確提示） */
+async function doLogin() {
+  const email = document.getElementById('emailInput').value.trim();
+  const pw = document.getElementById('pwInput').value;
+  const errEl = document.getElementById('loginError');
+  const btn = document.getElementById('loginBtn');
+  if (!email || !pw) { errEl.textContent = '請填寫郵箱與密碼'; return; }
+  btn.disabled = true; btn.textContent = '登入中…'; errEl.textContent = '';
+  const { error } = await client.auth.signInWithPassword({ email, password: pw });
+  btn.disabled = false; btn.textContent = '登入';
+  if (error) { errEl.textContent = '郵箱或密碼錯誤'; return; }
+  // 成功 → onAuthStateChange 接管視圖切換
+}
+
+/** 登出 */
+async function doLogout() {
+  await client.auth.signOut();
+  // SIGNED_OUT 事件接管視圖切換
+}
+
+// ============================================================
+// Tab 切換
+// ============================================================
+function switchTab(tab, btn) {
+  currentTab = tab;
+  document.querySelectorAll('.t-tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  loadTab(tab);
+}
+function loadTab(tab) {
+  if (tab === 'comments') loadTComments();
+  else if (tab === 'stats') loadTStats();
+  else if (tab === 'content') loadTContent();
+  else if (tab === 'templates') loadTTemplates();
+}
+
+// ============================================================
+// teacher-ops 調用封裝（FR-008：寫操作統一走 Edge Function，
+// supabase-js 登入態自動附加教師 JWT；錯誤不再靜默）
+// ============================================================
+async function ops(action, payload = {}) {
+  const { data, error } = await client.functions.invoke('teacher-ops', {
+    body: { action, ...payload },
+  });
+  if (error) {
+    showToast('操作失敗：' + (error.message || error), 'error');
+    return null;
+  }
+  if (data && data.error) {
+    showToast('操作失敗：' + data.error, 'error');
+    return null;
+  }
+  return data;
+}
+
+// ============================================================
+// Tab 1：所有留言（完整多輪線程 + 任意輪編輯 + 刪除 + CSV）
+// ============================================================
+async function loadTComments() {
+  const c = document.getElementById('teacherContent');
+  c.innerHTML = '<p class="loading">載入中...</p>';
+  try {
+    const { data, error } = await client.from('comments')
+      .select('*, posts(title, poets(name))')
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    if (!data || !data.length) { c.innerHTML = '<p class="empty">還沒有留言</p>'; return; }
+    commentsCache = data;
+
+    const ids = data.map(d => d.id);
+    const repliesByComment = {};
+    if (ids.length) {
+      const { data: reps, error: rErr } = await client.from('ai_replies')
+        .select('*').in('comment_id', ids).order('round', { ascending: true });
+      if (rErr) throw rErr;
+      (reps || []).forEach(r => {
+        (repliesByComment[r.comment_id] = repliesByComment[r.comment_id] || []).push(r);
+      });
+    }
+    window.__repliesByComment = repliesByComment;
+
+    c.innerHTML = `
+      <div style="margin-bottom:12px;">
+        <button class="t-btn" onclick="exportCSV()">📥 匯出 CSV</button>
+        <button class="t-btn danger" onclick="deleteAllComments()">🗑️ 刪除全部</button>
+      </div>
+      <div class="scroll-list">
+        ${data.map(d => renderThread(d, repliesByComment[d.id])).join('')}
+      </div>`;
+  } catch (e) {
+    c.innerHTML = '<p class="empty">載入錯誤：' + esc(e.message || '') + '</p>';
+  }
+}
+
+/** 渲染單條留言的完整對話線程（任意輪編輯按鈕） */
+function renderThread(d, replies) {
+  let html = `<div class="row-item" id="trow-${d.id}">
+    <div><strong>${esc(d.student_name)}</strong><span style="color:#999;font-size:12px;margin-left:6px;">${fmtT(d.created_at)}</span></div>
+    <div class="t-ctx">📜 ${esc(d.posts?.poets?.name || '—')} · 《${esc(d.posts?.title || '—')}》</div>
+    <p style="margin:4px 0;font-size:13px;">${esc(d.content)}</p>`;
+  if (!replies || !replies.length) {
+    html += `<p style="color:#ccc;font-size:12px;">尚未回覆</p>`;
+  } else {
+    html += `<div class="thread-box">`;
+    replies.forEach((r) => {
+      if (r.round > 1 && r.user_message) {
+        html += `<div class="followup-q">
+          <span style="color:#e67e22;font-weight:500;">🙋 追問（第${r.round}輪）</span>
+          <p style="margin:2px 0;color:#555;">${esc(r.user_message)}</p></div>`;
+      }
+      html += `<div class="reply-node" id="trep-${r.id}">
+        <span style="color:#576b95;">💬 <span id="trep-text-${r.id}">${esc(r.reply_text)}</span></span>
+        ${replySourceBadge(r.source)}
+        <button class="t-btn" style="font-size:11px;padding:2px 8px;" onclick="editReply('${r.id}')">編輯</button>
+        <span style="color:#bbb;font-size:10px;margin-left:4px;">第${r.round}輪</span>
+      </div>`;
+    });
+    html += `</div>`;
+  }
+  html += `<button class="t-btn danger" onclick="delComment('${d.id}')">刪除</button></div>`;
+  return html;
+}
+
+/** 來源徽章（含 003 新增 teacher-edited） */
+function replySourceBadge(src) {
+  const map = {
+    'deepseek':          { t: 'AI 生成',  c: '#2ecc71' },
+    'fallback':          { t: '預置回覆', c: '#e67e22' },
+    'fallback-nokey':    { t: '預置回覆', c: '#e67e22' },
+    'fallback-filtered': { t: '預置回覆', c: '#e67e22' },
+    'content-filter':    { t: '內容攔截', c: '#e74c3c' },
+    'teacher-edited':    { t: '✏️ 教師修改', c: '#8e44ad' },
+  };
+  const m = map[src] || (src ? { t: src, c: '#999' } : { t: '未知', c: '#999' });
+  return `<span class="badge" style="background:${m.c};">${m.t}</span>`;
+}
+
+/** 編輯任意輪 AI 回覆（Clarification Q1） */
+async function editReply(replyId) {
+  const textSpan = document.getElementById('trep-text-' + replyId);
+  if (!textSpan) return;
+  const original = textSpan.textContent;
+  const node = document.getElementById('trep-' + replyId);
+  if (!node) return;
+  node.innerHTML = `
+    <textarea class="edit-ta" id="trep-edit-${replyId}">${esc(original)}</textarea>
+    <div style="margin-top:4px;">
+      <button class="t-btn" onclick="saveReply('${replyId}')">保存</button>
+      <button class="t-btn" style="background:#999;" onclick="loadTComments()">取消</button>
+    </div>`;
+}
+
+/** 保存編輯（經 teacher-ops，落庫後 source=teacher-edited） */
+async function saveReply(replyId) {
+  const ta = document.getElementById('trep-edit-' + replyId);
+  if (!ta) return;
+  const newText = ta.value.trim();
+  if (!newText) { showToast('回覆內容不能為空', 'error'); return; }
+  const res = await ops('edit_reply', { id: replyId, reply_text: newText });
+  if (res) { showToast('已保存（標記為教師修改）', 'success'); loadTComments(); }
+}
+
+/** 刪除單條留言（級聯刪 AI 回覆） */
+async function delComment(id) {
+  if (!confirm('確定刪除這條留言及其全部對話？')) return;
+  const res = await ops('delete_comment', { id });
+  if (res) { showToast('已刪除', 'success'); loadTComments(); }
+}
+
+/** 刪除全部留言（confirm:true 雙重防護） */
+async function deleteAllComments() {
+  if (!confirm('⚠️ 確定刪除全部留言？此操作不可復原！')) return;
+  if (!confirm('再次確認：真的要清空所有學生留言嗎？')) return;
+  const res = await ops('delete_all_comments', { confirm: true });
+  if (res) { showToast('已清空（刪除 ' + (res.deleted || 0) + ' 條）', 'success'); loadTComments(); }
+}
+
+/** CSV 匯出（引號轉義修正） */
+async function exportCSV() {
+  try {
+    const { data, error } = await client.from('comments')
+      .select('*, posts(title, poets(name))').order('created_at', { ascending: true });
+    if (error) throw error;
+    const rows = data || [];
+    const ids = rows.map(d => d.id);
+    const replyMap = {}; const sourceMap = {};
+    if (ids.length) {
+      const { data: reps, error: rErr } = await client.from('ai_replies')
+        .select('*').in('comment_id', ids).order('round', { ascending: true });
+      if (rErr) throw rErr;
+      (reps || []).forEach(r => { replyMap[r.comment_id] = r.reply_text; sourceMap[r.comment_id] = r.source; });
+    }
+    const csvCell = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+    const csv = [
+      ['時間','學生','詩人','作品','留言','AI回覆','來源'].map(csvCell).join(','),
+      ...rows.map(d => [
+        fmtT(d.created_at), d.student_name,
+        d.posts?.poets?.name || '', d.posts?.title || '',
+        d.content, replyMap[d.id] || '', sourceLabel(sourceMap[d.id]),
+      ].map(csvCell).join(',')),
+    ].join('\n');
+    const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `教師後台_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click(); URL.revokeObjectURL(a.href);
+  } catch (e) { showToast('匯出失敗：' + (e.message || ''), 'error'); }
+}
+
+function sourceLabel(src) {
+  const map = {
+    'deepseek': 'AI生成', 'fallback': '預置回覆', 'fallback-nokey': '預置回覆',
+    'fallback-filtered': '預置回覆', 'content-filter': '內容攔截', 'teacher-edited': '教師修改',
+  };
+  return map[src] || '未知';
+}
+
+// ============================================================
+// Tab 2：統計
+// ============================================================
+async function loadTStats() {
+  const c = document.getElementById('teacherContent');
+  c.innerHTML = '<p class="loading">載入中...</p>';
+  try {
+    const { data, error } = await client.from('comments').select('student_name, post_id, posts(title, poets(name))');
+    if (error) throw error;
+    if (!data || !data.length) { c.innerHTML = '<p class="empty">還沒有留言數據</p>'; return; }
+    // 按學生統計
+    const byStudent = {};
+    data.forEach(x => { byStudent[x.student_name] = (byStudent[x.student_name] || 0) + 1; });
+    const sorted = Object.entries(byStudent).sort((a, b) => b[1] - a[1]);
+    // 按詩人統計
+    const byPoet = {};
+    data.forEach(x => {
+      const p = x.posts?.poets?.name || '未綁定';
+      byPoet[p] = (byPoet[p] || 0) + 1;
+    });
+    const poetRows = Object.entries(byPoet).sort((a, b) => b[1] - a[1]);
+    c.innerHTML = `
+      <h3 class="sec-title">留言統計</h3>
+      <p style="color:#999;font-size:12px;">總計：${data.length} 則 · 參與學生：${sorted.length} 人</p>
+      <h3 class="sec-title" style="margin-top:16px;">🏅 學生排行</h3>
+      <div class="scroll-list">
+        ${sorted.map(([n, cnt], i) => `<div class="row-item" style="display:flex;justify-content:space-between;">
+          <span>${i + 1}. ${esc(n)}</span><strong>${cnt} 則</strong></div>`).join('')}
+      </div>
+      <h3 class="sec-title" style="margin-top:16px;">📜 詩人互動分佈</h3>
+      <div>
+        ${poetRows.map(([p, cnt]) => `<div class="row-item" style="display:flex;justify-content:space-between;">
+          <span>${esc(p)}</span><strong>${cnt} 則</strong></div>`).join('')}
+      </div>`;
+  } catch (e) {
+    c.innerHTML = '<p class="empty">載入錯誤：' + esc(e.message || '') + '</p>';
+  }
+}
+
+// ============================================================
+// Tab 3：內容管理（詩人/作品發布 + 違禁詞）
+// ============================================================
+async function loadTContent() {
+  const c = document.getElementById('teacherContent');
+  c.innerHTML = '<p class="loading">載入中...</p>';
+  try {
+    const { data: poets, error: pErr } = await client.from('poets').select('*').order('name');
+    if (pErr) throw pErr;
+    const { data: posts, error: poErr } = await client.from('posts').select('*, poets(name)').order('created_at');
+    if (poErr) throw poErr;
+    const { data: badWords, error: bErr } = await client.from('profanity_words').select('*').order('word');
+    if (bErr) throw bErr;
+
+    c.innerHTML = `
+      <h3 class="sec-title">📚 詩人管理</h3>
+      <div class="scroll-list" style="max-height:22vh;margin-bottom:14px;">
+        ${(poets || []).map(p => `<div class="row-item" style="display:flex;justify-content:space-between;align-items:center;">
+          <div><span style="font-size:16px;margin-right:4px;">${esc(p.avatar_emoji)}</span><strong>${esc(p.name)}</strong> <span style="color:#999;font-size:11px;">${esc(p.dynasty)}</span></div>
+          <button class="t-btn" style="${p.is_published ? 'background:#2ecc71;' : 'background:#ccc;'}font-size:11px;padding:3px 10px;" onclick="togglePub('poets','${p.id}')">${p.is_published ? '✅ 已發布' : '⛔ 已隱藏'}</button>
+        </div>`).join('') || '<p class="empty">無數據</p>'}
+      </div>
+      <h3 class="sec-title">📜 作品管理</h3>
+      <div class="scroll-list" style="max-height:20vh;margin-bottom:14px;">
+        ${(posts || []).map(post => `<div class="row-item" style="display:flex;justify-content:space-between;align-items:center;">
+          <div><strong>${esc(post.title)}</strong> <span style="color:#999;font-size:11px;">— ${esc(post.poets?.name || '—')}</span></div>
+          <button class="t-btn" style="${post.is_published ? 'background:#2ecc71;' : 'background:#ccc;'}font-size:11px;padding:3px 10px;" onclick="togglePub('posts','${post.id}')">${post.is_published ? '✅ 已發布' : '⛔ 已隱藏'}</button>
+        </div>`).join('') || '<p class="empty">無數據</p>'}
+      </div>
+      <h3 class="sec-title">🚫 違禁詞管理 <span style="font-weight:normal;color:#999;font-size:12px;">（學生留言過濾）</span></h3>
+      <div style="background:#fef9e7;padding:8px;border-radius:6px;margin-bottom:8px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+        <input type="text" id="newBadWord" placeholder="新增違禁詞..." class="inline-input" style="flex:1;min-width:120px;">
+        <label style="font-size:11px;display:flex;align-items:center;gap:3px;"><input type="checkbox" id="newWordIsRegex"> 正則</label>
+        <button class="t-btn" style="font-size:11px;padding:4px 12px;" onclick="addWord()">＋ 新增</button>
+      </div>
+      <div class="scroll-list" style="max-height:20vh;">
+        ${(badWords || []).map(w => `<div class="row-item" style="display:flex;justify-content:space-between;align-items:center;font-size:12px;">
+          <div><code style="background:#f5f5f5;padding:1px 4px;border-radius:3px;">${esc(w.word)}</code>
+          ${w.is_regex ? '<span style="color:#e67e22;font-size:10px;margin-left:4px;">正則</span>' : ''}</div>
+          <div style="display:flex;gap:4px;">
+            <button class="t-btn" style="${w.is_active ? 'background:#2ecc71;' : 'background:#ccc;'}font-size:10px;padding:2px 8px;" onclick="toggleWord('${w.id}')">${w.is_active ? '啟用' : '停用'}</button>
+            <button class="t-btn danger" style="font-size:10px;padding:2px 8px;" onclick="deleteWord('${w.id}')">刪</button>
+          </div>
+        </div>`).join('') || '<p class="empty">無違禁詞</p>'}
+      </div>
+      <p style="color:#aaa;font-size:11px;margin-top:8px;">💡 隱藏詩人/作品後學生端不可見。違禁詞同時在前端和後端生效。</p>`;
+  } catch (e) {
+    c.innerHTML = '<p class="empty">載入錯誤：' + esc(e.message || '') + '</p>';
+  }
+}
+
+async function togglePub(table, id) {
+  const res = await ops('toggle_publish', { table, id });
+  if (res) { showToast(res.is_published ? '已發布' : '已隱藏', 'success'); loadTContent(); }
+}
+async function toggleWord(id) {
+  const res = await ops('toggle_word', { id });
+  if (res) loadTContent();
+}
+async function deleteWord(id) {
+  if (!confirm('確定刪除此違禁詞？')) return;
+  const res = await ops('delete_word', { id });
+  if (res) loadTContent();
+}
+async function addWord() {
+  const input = document.getElementById('newBadWord');
+  const word = (input?.value || '').trim();
+  if (!word) { showToast('請輸入詞語', 'error'); return; }
+  const isRegex = document.getElementById('newWordIsRegex')?.checked || false;
+  const res = await ops('add_word', { word, is_regex: isRegex });
+  if (res) { showToast('已新增', 'success'); loadTContent(); }
+}
+
+// ============================================================
+// Tab 4：回覆模板（CRUD 全走 teacher-ops）
+// ============================================================
+let allTemplates = [];
+async function loadTTemplates() {
+  const c = document.getElementById('teacherContent');
+  c.innerHTML = '<p class="loading">載入中...</p>';
+  try {
+    const { data, error } = await client.from('reply_templates').select('*').order('type').order('created_at');
+    if (error) throw error;
+    allTemplates = data || [];
+    const generic = allTemplates.filter(t => t.type === 'generic');
+    const smart = allTemplates.filter(t => t.type === 'smart');
+    const tplRow = (t) => `<div class="tpl-item" id="tpl-${t.id}">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
+        <div style="flex:1;white-space:pre-wrap;">${esc(t.reply)}
+        ${t.type === 'smart' ? `<br><span style="color:#999;font-size:11px;">關鍵詞：${esc(t.keyword || '')}</span>` : ''}</div>
+        <div style="flex-shrink:0;">
+          <button class="t-btn" style="font-size:11px;padding:2px 8px;" onclick="editTemplatePrompt('${t.id}')">編輯</button>
+          <button class="t-btn danger" style="font-size:11px;padding:2px 8px;" onclick="deleteTemplate('${t.id}')">刪除</button>
+        </div>
+      </div></div>`;
+    c.innerHTML = `
+      <div style="margin-bottom:12px;"><button class="t-btn" onclick="showAddTemplate()">➕ 新增模板</button></div>
+      <h3 class="sec-title">📋 固定回覆模板（API 不可用時隨機選用）</h3>
+      <div>${generic.map(tplRow).join('') || '<p class="empty">無</p>'}</div>
+      <h3 class="sec-title" style="margin-top:16px;">🧠 智能關鍵詞模板</h3>
+      <div>${smart.map(tplRow).join('') || '<p class="empty">無</p>'}</div>`;
+  } catch (e) {
+    c.innerHTML = '<p class="empty">載入錯誤：' + esc(e.message || '') + '</p>';
+  }
+}
+
+function showAddTemplate() {
+  const c = document.getElementById('teacherContent');
+  const form = `<div id="addTplForm" style="background:#f9f9f9;padding:12px;border-radius:8px;margin-bottom:12px;">
+    <h4 style="margin:0 0 8px;">新增模板</h4>
+    <div style="margin-bottom:6px;"><label style="font-size:12px;">類型：</label>
+      <select id="tplType" class="inline-input" onchange="document.getElementById('kwField').style.display=this.value==='smart'?'block':'none'">
+        <option value="generic">固定回覆</option><option value="smart">智能關鍵詞</option>
+      </select></div>
+    <div id="kwField" style="margin-bottom:6px;display:none;">
+      <label style="font-size:12px;">觸發關鍵詞（逗號分隔）：</label>
+      <input type="text" id="tplKeyword" class="inline-input" style="width:90%;" placeholder="例如：心情,感覺,最近">
+    </div>
+    <div style="margin-bottom:6px;"><label style="font-size:12px;">回覆內容：</label>
+      <textarea id="tplReply" class="inline-input" style="width:90%;min-height:50px;"></textarea></div>
+    <button class="t-btn" onclick="submitAddTemplate()">保存</button>
+    <button class="t-btn" style="background:#999;" onclick="document.getElementById('addTplForm').remove()">取消</button>
+  </div>`;
+  c.insertAdjacentHTML('afterbegin', form);
+}
+
+async function submitAddTemplate() {
+  const type = document.getElementById('tplType').value;
+  const reply = document.getElementById('tplReply').value.trim();
+  const kwEl = document.getElementById('tplKeyword');
+  const keyword = type === 'smart' && kwEl ? kwEl.value.trim() : null;
+  if (!reply) { showToast('請填寫回覆內容', 'error'); return; }
+  if (type === 'smart' && !keyword) { showToast('smart 模板需要關鍵詞', 'error'); return; }
+  const res = await ops('add_template', { type, reply, keyword });
+  if (res) { showToast('已新增', 'success'); loadTTemplates(); }
+}
+
+function editTemplatePrompt(id) {
+  const tpl = allTemplates.find(t => t.id === id);
+  if (!tpl) return;
+  const newReply = prompt('修改回覆內容：', tpl.reply);
+  if (newReply === null) return;
+  let newKeyword = tpl.keyword;
+  if (tpl.type === 'smart') {
+    newKeyword = prompt('修改觸發關鍵詞（逗號分隔）：', tpl.keyword || '');
+    if (newKeyword === null) return;
+  }
+  saveTemplate(id, newReply.trim(), newKeyword ? newKeyword.trim() : null);
+}
+
+async function saveTemplate(id, reply, keyword) {
+  if (!reply) { showToast('回覆內容不能為空', 'error'); return; }
+  const res = await ops('edit_template', { id, reply, keyword });
+  if (res) { showToast('已保存', 'success'); loadTTemplates(); }
+}
+
+async function deleteTemplate(id) {
+  if (!confirm('確定刪除這條模板？')) return;
+  const res = await ops('delete_template', { id });
+  if (res) loadTTemplates();
+}
+
+// ============================================================
+// 後台即時更新（FR-011）：admin-* 全域頻道
+// 學生新留言/新 AI 回覆即時出現（課堂投屏監控友好）
+// ============================================================
+function subscribeAdminRT() {
+  rtChannels.forEach(ch => client.removeChannel(ch));
+  rtChannels = [];
+
+  const commentsCh = client.channel('admin-comments')
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'comments' }, (payload) => {
+      const nc = payload.new;
+      console.log('🆕 後台收到新留言:', nc?.id);
+      if (currentTab === 'comments') {
+        if (document.getElementById('trow-' + nc.id)) return; // 去重
+        prependThread(nc);
+      }
+      refreshIfTab('stats');
+    })
+    .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'comments' }, (payload) => {
+      const el = document.getElementById('trow-' + payload.old?.id);
+      if (el) { el.style.opacity = '0'; setTimeout(() => el.remove(), 300); }
+    })
+    .subscribe();
+
+  const repliesCh = client.channel('admin-replies')
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'ai_replies' }, (payload) => {
+      const nr = payload.new;
+      console.log('🤖 後台收到新回覆:', nr?.id);
+      if (currentTab === 'comments' && nr) appendReplyToThread(nr);
+    })
+    .subscribe();
+
+  rtChannels.push(commentsCh, repliesCh);
+}
+
+/** Realtime 新留言 → 插入列表頂部（補拉詩人/作品上下文） */
+async function prependThread(nc) {
+  try {
+    const { data } = await client.from('comments')
+      .select('*, posts(title, poets(name))').eq('id', nc.id).single();
+    if (!data) return;
+    const list = document.querySelector('#teacherContent .scroll-list');
+    if (!list) return;
+    const empty = list.querySelector('.empty');
+    if (empty) empty.remove();
+    list.insertAdjacentHTML('afterbegin', renderThread(data, []));
+    const row = document.getElementById('trow-' + nc.id);
+    if (row) { row.style.backgroundColor = '#f0fff4'; setTimeout(() => row.style.backgroundColor = '', 2000); }
+    // 同步到緩存供回覆頻道查上下文
+    if (!commentsCache.find(c => c.id === nc.id)) commentsCache.unshift(data);
+    window.__repliesByComment = window.__repliesByComment || {};
+    if (!window.__repliesByComment[nc.id]) window.__repliesByComment[nc.id] = [];
+  } catch (e) { console.warn('補拉留言上下文失敗:', e); }
+}
+
+/** Realtime 新 AI 回覆 → 追加到對應線程 */
+function appendReplyToThread(nr) {
+  const map = window.__repliesByComment || {};
+  const list = map[nr.comment_id] = map[nr.comment_id] || [];
+  if (list.find(r => r.id === nr.id)) return; // 去重
+  list.push(nr);
+  const thread = document.querySelector(`#trow-${nr.comment_id} .thread-box`);
+  if (thread) {
+    if (nr.round > 1 && nr.user_message) {
+      thread.insertAdjacentHTML('beforeend', `<div class="followup-q">
+        <span style="color:#e67e22;font-weight:500;">🙋 追問（第${nr.round}輪）</span>
+        <p style="margin:2px 0;color:#555;">${esc(nr.user_message)}</p></div>`);
+    }
+    thread.insertAdjacentHTML('beforeend', `<div class="reply-node" id="trep-${nr.id}">
+      <span style="color:#576b95;">💬 ${esc(nr.reply_text)}</span>
+      ${replySourceBadge(nr.source)}
+      <button class="t-btn" style="font-size:11px;padding:2px 8px;" onclick="editReply('${nr.id}')">編輯</button>
+      <span style="color:#bbb;font-size:10px;margin-left:4px;">第${nr.round}輪</span></div>`);
+    const node = document.getElementById('trep-' + nr.id);
+    if (node) { node.style.backgroundColor = '#f0f4ff'; setTimeout(() => node.style.backgroundColor = '', 2000); }
+  }
+}
+
+/** 當前在統計 Tab 時，新留言觸發刷新 */
+function refreshIfTab(tab) {
+  if (currentTab === tab) loadTab(tab);
+}
+
+// 頁面卸載時取消訂閱
+window.addEventListener('beforeunload', () => {
+  rtChannels.forEach(ch => client.removeChannel(ch));
+});
+
+// ============================================================
+// 工具函數
+// ============================================================
+function showToast(msg, type = 'info') {
+  const toast = document.getElementById('toast');
+  if (!toast) return;
+  toast.textContent = msg;
+  toast.style.display = 'block';
+  toast.style.background = type === 'error' ? 'rgba(231,76,60,0.92)'
+    : type === 'success' ? 'rgba(46,204,113,0.92)' : 'rgba(0,0,0,0.8)';
+  setTimeout(() => { toast.style.display = 'none'; }, 3000);
+}
+function esc(t) { const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
+function fmtT(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  const y = d.getFullYear();
+  const M = String(d.getMonth() + 1).padStart(2, '0');
+  const D = String(d.getDate()).padStart(2, '0');
+  const h = String(d.getHours()).padStart(2, '0');
+  const m = String(d.getMinutes()).padStart(2, '0');
+  return `${y}-${M}-${D} ${h}:${m}`;
+}
+</script>
+</body>
+</html>

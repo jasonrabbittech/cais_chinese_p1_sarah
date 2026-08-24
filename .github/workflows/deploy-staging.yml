@@ -14,6 +14,7 @@ on:
     branches: [testing]
     paths:
       - 'index.html'
+      - 'admin/**'
       - 'inject-env.js'
       - 'supabase/functions/**'
       - 'supabase/migrations/**'
@@ -45,8 +46,9 @@ jobs:
       - name: Build frontend (inject testing env)
         run: |
           echo "🔧 注入測試環境 Supabase 憑據..."
-          mkdir -p dist
+          mkdir -p dist dist/admin
           node inject-env.js index.html dist/index.html
+          node inject-env.js admin/index.html dist/admin/index.html
         env:
           SUPABASE_URL: https://${{ secrets.TESTING_SUPABASE_PROJECT_REF }}.supabase.co
           SUPABASE_ANON_KEY: ${{ secrets.TESTING_SUPABASE_ANON_KEY }}
