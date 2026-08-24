@@ -65,24 +65,29 @@ async function loadCustomBadWords(): Promise<{ word: string; is_regex: boolean; 
   return customBadWordsCache || [];
 }
 
-/** 檢測文字是否含不當內容（憲法 VI：防止提示注入 / 不當輸出） */
-async function containsProfanity(text: string): Promise<boolean> {
-  if (!text) return false;
+/** 檢測文字是否含不當內容，返回首個命中詞（004：命中原因明確化，research D5） */
+async function findProfanity(text: string): Promise<string | null> {
+  if (!text) return null;
   const lower = text.toLowerCase();
   for (const word of PROFANITY_WORDS) {
-    if (lower.includes(word.toLowerCase())) return true;
+    if (lower.includes(word.toLowerCase())) return word;
   }
   for (const re of PROFANITY_REGEX) {
-    if (re.test(text)) { re.lastIndex = 0; return true; }
+    if (re.test(text)) { re.lastIndex = 0; return re.source.slice(0, 20); }
   }
   // 教師自訂違禁詞（從 DB 載入，含正則支持）
   const customWords = await loadCustomBadWords();
   for (const w of customWords) {
     if (!w.is_active) continue;
-    if (w.is_regex) { try { if (new RegExp(w.word, "gi").test(text)) return true; } catch { /* skip invalid regex */ } }
-    else if (lower.includes(w.word.toLowerCase())) return true;
+    if (w.is_regex) { try { if (new RegExp(w.word, "gi").test(text)) return w.word; } catch { /* skip invalid regex */ } }
+    else if (lower.includes(w.word.toLowerCase())) return w.word;
   }
-  return false;
+  return null;
+}
+
+/** 違禁詞掩碼（每字→＊，教育場景不反向展示原文 — spec Scenario 7） */
+function maskWord(w: string): string {
+  return w.split("").map(() => "＊").join("");
 }
 
 // ============================================================
@@ -176,13 +181,20 @@ async function supabaseRest(path: string, init: RequestInit): Promise<Response> 
 interface ConversationContext {
   comment: { id: string; student_name: string; content: string };
   post: { id: string; title: string };
-  poet: { id: string; name: string; system_prompt: string };
+  poet: {
+    id: string;
+    name: string;
+    system_prompt: string;
+    tone: string | null;
+    personality: string | null;
+    languageStyle: string | null;
+  };
 }
 
-/** 載入留言 → 作品 → 詩人（含 system_prompt） */
+/** 載入留言 → 作品 → 詩人（含 system_prompt + 004 人設字段） */
 async function loadContext(commentId: string): Promise<ConversationContext | null> {
   const res = await supabaseRest(
-    `comments?id=eq.${commentId}&select=id,student_name,content,post_id,posts(id,title,poet_id,poets(id,name,system_prompt))`,
+    `comments?id=eq.${commentId}&select=id,student_name,content,post_id,posts(id,title,poet_id,poets(id,name,system_prompt,tone,language_style,personality))`,
     { method: "GET" }
   );
   if (!res.ok) return null;
@@ -196,8 +208,36 @@ async function loadContext(commentId: string): Promise<ConversationContext | nul
       id: row.posts.poets.id,
       name: row.posts.poets.name,
       system_prompt: row.posts.poets.system_prompt,
+      tone: row.posts.poets.tone ?? null,
+      personality: row.posts.poets.personality ?? null,
+      languageStyle: row.posts.poets.language_style ?? null,
     },
   };
+}
+
+/**
+ * 004 D2：風格指令拼接——在既有 system_prompt 末尾追加語言風格/人設指令段。
+ * 不改存儲的 prompt（保護 002 種子）；字段全空時零拼接（向後兼容）。
+ */
+function buildSystemPrompt(p: {
+  system_prompt: string;
+  tone: string | null;
+  personality: string | null;
+  languageStyle: string | null;
+}): string {
+  const STYLE_INSTRUCTIONS: Record<string, string> = {
+    modern: "請用現代白話中文回覆，親切自然，像現代人聊天。",
+    classical: "請用文言文回覆，典雅古樸，可夾少量白話註解。",
+    cantonese: "請用香港本地粵語口語回覆（例如：你好吖、多謝、唔該、犀利）。",
+  };
+  const parts: string[] = [];
+  if (p.languageStyle && STYLE_INSTRUCTIONS[p.languageStyle]) {
+    parts.push(STYLE_INSTRUCTIONS[p.languageStyle]);
+  }
+  if (p.personality) parts.push(`性格特點：${p.personality}。`);
+  if (p.tone) parts.push(`語氣語調：${p.tone}。`);
+  if (!parts.length) return p.system_prompt;
+  return `${p.system_prompt}\n\n【風格覆蓋】${parts.join("")}`;
 }
 
 interface ReplyRow {
@@ -421,17 +461,27 @@ Deno.serve(async (req: Request) => {
     let source: string;
     let flagged = false;
 
-    // 不當內容檢查（憲法 VI）
-    if (await containsProfanity(studentMessage)) {
+    // 不當內容檢查（憲法 VI / 004 D5：命中返回掩碼原因）
+    const inputHit = await findProfanity(studentMessage);
+    if (inputHit && nextRound > 1) {
+      // 追問未入庫，乾淨拒絕（422 + 掩碼命中詞）
+      const masked = maskWord(inputHit);
+      return jsonResponse({
+        error: `追問包含違禁詞「${masked}」，請修改後再發送`,
+        hit_word: masked,
+      }, 422);
+    }
+    if (inputHit) {
+      // 第 1 輪：留言已入庫，以詩人口吻勸導並附命中原因（兜底，主防線在前端）
       flagged = true;
-      reply = "同學，請使用文明用語。吾雖豪放，亦講禮儀。🙏";
+      reply = `同學，你的留言包含違禁詞「${maskWord(inputHit)}」，請使用文明用語。吾雖豪放，亦講禮儀。🙏`;
       source = "content-filter";
     } else if (DEEPSEEK_API_KEY) {
       try {
-        reply = await callDeepSeek(ctx.poet.system_prompt, history, studentMessage, ctx.comment.student_name, ctx.poet.name);
+        reply = await callDeepSeek(buildSystemPrompt(ctx.poet), history, studentMessage, ctx.comment.student_name, ctx.poet.name);
         source = "deepseek";
         // 輸出過濾（憲法 VI）
-        if (await containsProfanity(reply)) {
+        if (await findProfanity(reply)) {
           reply = fallbackReply(ctx.poet.name);
           source = "fallback-filtered";
         }

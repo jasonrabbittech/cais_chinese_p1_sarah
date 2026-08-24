@@ -3,8 +3,9 @@
 **Feature ID**: 004  
 **Feature Name**: poet-cms-engagement  
 **Created**: 2026-08-24  
+**Last Updated**: 2026-08-25（003 实施后校准 + clarify 三项决议）  
 **Phase**: Phase 4 (Content & Engagement)  
-**Depends on**: 003-teacher-admin-portal（admin 基础设施 + teacher-ops 鉴权，须先实施）
+**Depends on**: 003-teacher-admin-portal（✅ 已完成并部署 staging；生产部署待用户确认后执行）
 
 ---
 
@@ -17,6 +18,30 @@ Extend the admin portal with a full poet CMS (create/edit/delete poets with avat
 ### 中文
 
 在教师后台新增完整诗人 CMS：增删诗人、上传诗人头像与朋友圈背景图、配置人设（性格特点、语气语调）、语言风格三选一（现代语言/古代语言/香港本地粤语）；按诗人管理作品；课堂互动分析：按诗人维度的学生回复统计、一键 AI 总结、学生龙虎榜（Top 3 活跃）、Top 3 高质量问题；学生端新增设置按钮弹出二维码供扫码加入；敏感词拦截升级——命中时提示具体原因并阻止发布。
+
+---
+
+## Clarifications
+
+### Session 2026-08-25
+
+- Q: 新增诗人时，AI 的基底人设 prompt（数据库必填字段）从哪里来？ → A: 系统自动生成 + 高级折叠区可覆写——add_poet 默认由结构化字段按模板生成基底 prompt，表单「高級」折叠区允许教师直接编辑完整 prompt 覆盖默认值。
+- Q: 学生端的设置按钮要不要顺便提供「修改姓名」入口？ → A: 仅 QR——设置弹窗只放二维码（+ 可复制链接），保持 004 scope 最小化；学生改名功能后续另开 feature。
+- Q: 「一键生成总结」每次点击都实时调用 AI，还是缓存上次结果？ → A: 缓存 + 手动刷新——统计 Tab 显示上次总结与生成时间戳，点「重新生成」才触发新 AI 调用。
+
+---
+
+## Implementation Anchors / 实现锚点（003 已交付，004 直接复用）
+
+003 已在 staging 上线教师后台门户，004 在其之上构建，不重复造轮：
+
+| 003 交付物 | 004 复用方式 |
+|-----------|-------------|
+| `/admin/` 门户（登录墙 + Tab 架构） | 诗人/作品管理扩展「內容管理」Tab；统计/龙虎榜/总结增强「統計」Tab |
+| `teacher-ops`（JWT 鉴权 + action 分发） | 新增 poet/post CRUD action，鉴权与限流零改动 |
+| `ops()` 前端封装（invoke + toast 反馈） | 全部新管理写操作沿用同一封装 |
+| admin Realtime（admin-* 频道） | 诗人/作品发布状态变更经既有学生端订阅即时反映 |
+| 敏感词过滤链路（前端 + ai-reply DB 词库） | 在既有过滤上增强"返回命中词（掩码）"能力 |
 
 ---
 
@@ -42,6 +67,7 @@ Extend the admin portal with a full poet CMS (create/edit/delete poets with avat
 **Acceptance Criteria**:
 - 后台「詩人管理」模块：诗人列表 + 新增 + 编辑 + 删除
 - 诗人档案字段：姓名、朝代、简介、性格特点、语气语调
+- 基底人设 prompt 默认由结构化字段自动生成；表单「高級」折叠区可直接编辑完整 prompt 覆盖默认（Clarification Q1）
 - 可上传诗人头像（图片）与朋友圈背景图（图片）
 - 无图片时回退显示 emoji 头像 / 默认背景（现有行为兼容）
 - 删除保护：有留言数据的诗人不可直接删除，需提示先处理其留言
@@ -77,8 +103,8 @@ Extend the admin portal with a full poet CMS (create/edit/delete poets with avat
 
 **Acceptance Criteria**:
 - 统计模块：按诗人（可下钻作品）显示留言数、追问数、参与学生数
-- 「一鍵生成總結」按钮：生成班级互动叙述性总结（哪些学生活跃、讨论主题、亮点）
-- 总结在后台展示，可复制
+- 「一鍵生成總結」：显示**上次总结与生成时间戳**（缓存），点「重新生成」才触发新 AI 调用（Clarification Q3）；首次使用直接生成
+- 总结生成期间显示加载状态；生成后在后台展示，可复制
 
 ### Scenario 6: 学生龙虎榜 (P2)
 
@@ -117,7 +143,7 @@ Extend the admin portal with a full poet CMS (create/edit/delete poets with avat
 | FR-006 | 作品 CRUD + 配图 + 发布开关 | P1 |
 | FR-007 | 删除保护：有留言的诗人/作品禁止删除并提示 | P1 |
 | FR-008 | 回复统计：按诗人/作品维度（留言数/追问数/参与人数） | P1 |
-| FR-009 | 一键 AI 总结班级互动（经 Edge Function，含龙虎榜数据） | P2 |
+| FR-009 | 一键 AI 总结班级互动（经 Edge Function，缓存+手动刷新） | P2 |
 | FR-010 | 学生龙虎榜：Top 3 活跃学生 | P2 |
 | FR-011 | Top 3 高质量问题（AI 评估质量） | P2 |
 | FR-012 | 敏感词拦截显示具体命中原因（掩码展示，前后端一致） | P1 |
@@ -127,12 +153,12 @@ Extend the admin portal with a full poet CMS (create/edit/delete poets with avat
 ## Success Criteria / 成功标准
 
 - [ ] 扫学生端二维码可直接打开应用
-- [ ] 教师新增诗人（含上传头像/背景图/人设/语言风格）并发布后，学生端无需刷新即可见（或轻刷新）
+- [ ] 教师新增诗人（含上传头像/背景图/人设/语言风格）并发布后，学生端可见（新诗人用图片头像）
 - [ ] 新诗人的 AI 回复体现所配置的性格、语气与语言风格（粤语配置 → 粤语回复）
 - [ ] 教师 CRUD 作品后学生端选择器同步
 - [ ] 删除有留言的诗人/作品被拒并有明确提示
 - [ ] 统计数字与实际留言/追问一致（抽样核对）
-- [ ] 一键总结生成流畅中文叙述（含活跃学生与讨论主题）
+- [ ] 一键总结生成流畅中文叙述；缓存生效（切 Tab 保留，「重新生成」才调 AI）
 - [ ] 龙虎榜排名与统计一致，仅后台可见
 - [ ] 含敏感词的留言被阻止，提示命中词（掩码）
 - [ ] 用 API 直接提交（绕过前端）含敏感词的留言同样被拒且返回原因
@@ -146,15 +172,17 @@ Extend the admin portal with a full poet CMS (create/edit/delete poets with avat
 |------|------|
 | poets 表 | 🆕 字段：avatar_url、bg_url、language_style（modern/classical/cantonese）、tone（语气）、personality（性格特点） |
 | posts 表 | 🆕 字段：bg_url（作品配图） |
-| 图片存储 | 🆕 图片存储桶（诗人头像、背景图、作品配图） |
-| AI 总结端点 | 🆕 Edge Function 能力：班级互动总结 + 问题质量评估（鉴权同 teacher-ops） |
-| 违禁词命中 | 行为变更：拦截响应携带具体命中词（掩码） |
+| 图片存储 | 🆕 图片存储桶（诗人头像、背景图、作品配图；教师登录态可写、公开可读） |
+| teacher-ops 操作集 | 🆕 新增：add_poet / edit_poet / delete_poet / add_post / edit_post / delete_post（鉴权复用 003 JWT 模式） |
+| AI 总结端点 | 🆕 独立 Edge Function（班级互动总结 + 问题质量评估；鉴权同 teacher-ops；AI 调用遵循宪法 II/VI） |
+| 违禁词命中 | 行为变更：拦截响应携带具体命中词（掩码），前端与 ai-reply 双端一致 |
 
 ---
 
 ## Assumptions / 假设
 
-- **依赖顺序**：003（admin portal + teacher-ops JWT 鉴权）先行实施上线，004 在其上构建
+- **依赖状态**：003 已部署 staging ✅，004 开发期间 staging 可用；004 同样走 staging 验证 → 生产流程
+- **Scope 边界**：学生设置弹窗仅含二维码（改名功能不在 004，后续 feature）；存量诗人的姓名/朝代/简介/人设字段同样开放编辑（与新增诗人同一表单）
 - 图片上传走平台托管存储（宪法 I Supabase-First），限制格式（jpg/png/webp）与大小（≤2MB）
 - 语言风格实现为 prompt 组装策略：人设字段 + 语言风格指令拼入该诗人的 system prompt，教师无需手写 prompt
 - 活跃度定义：留言数 + 追问数合计（无其他加权）
@@ -162,7 +190,7 @@ Extend the admin portal with a full poet CMS (create/edit/delete poets with avat
 - 二维码由前端库生成，内容为当前环境的学生端 URL（production/staging 各自对应）
 - 龙虎榜与 Top 问题仅教师后台展示，学生端不显示
 - 现有 emoji 头像机制保留：无上传图片的诗人继续用 avatar_emoji
-- 一键总结单次生成（非流式），超时与降级策略同现有 AI 调用
+- 一键总结为缓存展示 + 手动重新生成（localStorage），单次生成（非流式），超时与降级策略同现有 AI 调用
 
 ---
 
