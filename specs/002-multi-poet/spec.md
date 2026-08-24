@@ -164,12 +164,12 @@ Extend the AI ancient poet social media teaching app from a single poet (Su Shi)
 
 ## Open Issues / 未决问题（宪法冲突，待确认）
 
-| # | 问题 | 违反原则 | 严重度 |
-|---|------|---------|--------|
-| O-1 | 教师密码硬编码在前端 `index.html`（`TEACHER_PASSWORD`） | IV. Security by Default | 🔴 高 |
-| O-2 | `teacher-ops` Edge Function 无任何鉴权（service_role 权限但任何人可调） | IV. Security by Default | 🔴 高 |
-| O-3 | 开发期间直接提交 main，未走 testing → PR 流程 | V. GitHub Flow | 🟡 流程 |
-| O-4 | FR-009~012 未先写 spec 即实现（本文件为事后补记） | VIII. Spec-Driven | 🟡 流程 |
+| # | 问题 | 违反原则 | 严重度 | 状态 |
+|---|------|---------|--------|------|
+| O-1 | 教师密码硬编码在前端 `index.html`（`TEACHER_PASSWORD`） | IV. Security by Default | 🔴 高 | 🟡 staging 已修复（003），生产待合并 |
+| O-2 | `teacher-ops` Edge Function 无任何鉴权（service_role 权限但任何人可调） | IV. Security by Default | 🔴 高 | 🟡 staging 已修复（003），生产待合并 |
+| O-3 | 开发期间直接提交 main，未走 testing → PR 流程 | V. GitHub Flow | 🟡 流程 | ✅ 003 起恢复完整 PR 流程 |
+| O-4 | FR-009~012 未先写 spec 即实现（本文件为事后补记） | VIII. Spec-Driven | 🟡 流程 | ✅ 已补记（本文件 2026-08-24 更新） |
 
 ---
 

@@ -1,33 +1,29 @@
 # CODEBUDDY.md - Project Context for AI Agent
 
 <!-- SPECKIT START -->
-**Current Feature**: 002-multi-poet (多诗人 + 多作品 + AI 多轮对话)
-**Current Plan**: `specs/002-multi-poet/plan.md` (v1.0, created 2026-07-01)
-**Status**: Planning complete (Phase 0/1), ready for implementation
-**Depends on**: 001-ai-poet-friends (Phase 1, deployed to production)
+**Current Feature**: 003-teacher-admin-portal (教师后台独立门户)
+**Current Plan**: `specs/003-teacher-admin-portal/plan.md` (v1.0, 2026-08-24)
+**Status**: **已部署 staging**（用户要求仅 staging，未合 main / 未上生产）
+**Depends on**: 002-multi-poet (Phase 2, 生产运行中)
 
 ## Active Context
-- Phase 1: Deployed (苏轼 only, `su-shi-reply` Edge Function)
-- Phase 2 Scope: 4 poets (苏轼/李白/杜甫/李清照), multi-post, multi-turn AI
-- New tables: `poets`, `posts`, `ai_replies`
-- New Edge Function: `ai-reply` (generic, replaces `su-shi-reply`)
-- Migration: `002_multi_poet.sql` + `002_backfill.sql`
+- 003 已完成 T033-T051（19/21），T052 staging 验证通过，T053 待生产部署时收尾
+- 教师后台: https://jasonrabbittech.github.io/cais_chinese_p1_sarah-staging/admin/
+- 教师账号（testing）: teacher@sarah-ai.test（密码见交付说明，Dashboard 可改）
+- teacher-ops: JWT 鉴权（GoTrue 转发）+ 限流 + 10 个操作（契约: specs/003/contracts/）
+- Auth: testing 环境已禁止公开注册；**生产环境 Auth 配置待做**（上生产前）
+- 学生端 index.html: 管理代码已移除（-408 行），TEACHER_PASSWORD 已删
+- 下一 Feature: 004-poet-cms-engagement（spec 完成，依赖 003 先上生产）
 
 ## Next Steps
-1. Review plan.md and confirm alignment with spec.md
-2. Execute tasks.md starting with T022 (DB schema)
-3. Validate against quickstart.md scenarios A-D
-4. Deploy to testing branch, verify, then merge to main
+1. 用户在 staging 试用教师后台（quickstart.md 场景 1-6）
+2. 确认后 PR feat/003 → main（生产 Auth 配置 → 部署 → 复验）
+3. 关闭 002 Open Issues O-1/O-2 → 启动 004 plan
 
-## Key Files (Phase 2)
-- Spec: `specs/002-multi-poet/spec.md`
-- Plan: `specs/002-multi-poet/plan.md`
-- Tasks: `specs/002-multi-poet/tasks.md`
-- Data Model: `specs/002-multi-poet/data-model.md`
-- Quickstart: `specs/002-multi-poet/quickstart.md`
-- Research: `specs/002-multi-poet/research.md`
-- Frontend: `index.html` (to be modified)
-- Edge Function: `supabase/functions/ai-reply/index.ts` (new)
+## Key Files (Phase 3)
+- Spec: `specs/003-teacher-admin-portal/`（spec/plan/tasks/contracts/data-model/quickstart/research）
+- Admin Portal: `admin/index.html`
+- Edge Function: `supabase/functions/teacher-ops/index.ts`（JWT 鉴权版）
 <!-- SPECKIT END -->
 
 ---
