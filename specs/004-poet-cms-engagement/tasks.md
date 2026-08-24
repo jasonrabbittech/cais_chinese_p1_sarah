@@ -64,8 +64,8 @@ T060+T062+T063+T066+T067+T068+T069 ─> T070 staging全量验证 ─> T071 PR收
 
 ## Phase 8: Polish & 验收
 
-- [ ] T070 按 `specs/004-poet-cms-engagement/quickstart.md` 场景 1–10 全量验证（staging）：含覆写保护（场景1.6）、缓存行为（场景6）、双端掩码一致（场景8）、回退链（场景1.7）
-- [ ] T071 PR `feat/004-...` → `testing`（staging 验证）→ 用户确认后 PR → `main`（生产部署前核对：db push 含 008、ai-summary secrets 同 ai-reply、Storage bucket 生产就位）；更新 `CODEBUDDY.md` Active Context
+- [x] T070 按 `specs/004-poet-cms-engagement/quickstart.md` 场景 1–10 全量验证（staging）：含覆写保护（场景1.6）、缓存行为（场景6）、双端掩码一致（场景8）、回退链（场景1.7）
+- [x] T071 PR `feat/004-...` → `testing`（staging 验证）→ 用户确认后 PR → `main`（生产部署前核对：db push 含 008、ai-summary secrets 同 ai-reply、Storage bucket 生产就位）；更新 `CODEBUDDY.md` Active Context
 
 ---
 
