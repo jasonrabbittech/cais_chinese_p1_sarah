@@ -294,7 +294,7 @@ async function loadTComments() {
   c.innerHTML = '<p class="loading">載入中...</p>';
   try {
     const { data, error } = await client.from('comments')
-      .select('*, posts(title, poets(name))')
+      .select('id,student_name,content,created_at,post_id,posts(title,poets(name))')
       .order('created_at', { ascending: false });
     if (error) throw error;
     if (!data || !data.length) { c.innerHTML = '<p class="empty">還沒有留言</p>'; return; }
@@ -835,9 +835,11 @@ function subscribeAdminRT() {
 
 /** Realtime 新留言 → 插入列表頂部（補拉詩人/作品上下文） */
 async function prependThread(nc) {
+  if (!nc || !nc.id) return; // 防御：Realtime payload 偶发缺 id
   try {
     const { data } = await client.from('comments')
-      .select('*, posts(title, poets(name))').eq('id', nc.id).single();
+      .select('id,student_name,content,created_at,post_id,posts(title,poets(name))')
+      .eq('id', nc.id).maybeSingle();
     if (!data) return;
     const list = document.querySelector('#teacherContent .scroll-list');
     if (!list) return;
