@@ -419,7 +419,8 @@ async function exportCSV() {
     const replyMap = {}; const sourceMap = {};
     if (ids.length) {
       const { data: reps, error: rErr } = await client.from('ai_replies')
-        .select('*').in('comment_id', ids).order('round', { ascending: true });
+        .select('id,comment_id,reply_text,source')
+        .in('comment_id', ids).order('round', { ascending: true });
       if (rErr) throw rErr;
       (reps || []).forEach(r => { replyMap[r.comment_id] = r.reply_text; sourceMap[r.comment_id] = r.source; });
     }
